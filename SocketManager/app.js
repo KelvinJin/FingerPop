@@ -14,6 +14,17 @@ var server = app.listen(3000);
 //var http = require('http');
 var io = require('socket.io').listen(server);
 
+//unix socket
+var SERVER_DEFAULT_ADDR = '/tmp/server';
+var net = require('net');
+var client = net.connect({path: SERVER_DEFAULT_ADDR},
+  function(){
+    console.log('connected to server!');
+    //client.write('hello world!');
+  });
+client.setEncoding('utf8');
+
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
@@ -66,15 +77,25 @@ module.exports = app;
 
 
 io.on('connection', function(socket){
-  console.log('new node connected');
+  var ipInfo = socket.request.connection._peername;
+  var sessionStartCommand = sessionStartCommand(ipInfo.address+":"+ipinfo.port);
+  client.write(sessionStartCommand);
+  client.on('data',function(msg){
+      //TODO
+      socket.emit('reply',msg);
+  });
   socket.on('message', function(msg){
     console.log(msg);
+
+
     if(msg == 'getWord')
     {
       //var word = 'CAO';
       var word =getRandomItemFromList(defaultWords[currentLevel]);
 
       io.emit('word',word);
+
+
       console.log('returning word : '+word);
 
     }
@@ -98,6 +119,11 @@ io.on('connection', function(socket){
 
   });
 });
+
+function sessionStartCommand(ipAddress)
+{
+    return '{"Type":0,"Content":{"@ip_addr":' +ipAddress  +'}}';
+}
 //TOOLS-----------
 function shuffleArray(array) {
   for (var i = array.length - 1; i > 0; i--) {
