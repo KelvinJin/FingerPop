@@ -28,6 +28,132 @@
 
     //socket.io------------
     var socket = io();
+    var my_session_id = null;
+    var my_player_id = null;
+    var my_name = null;
+    var player_score_list = {};
+
+    var PLAYER_NAME_KEY = 'name';
+    var PLAYER_SCORE_KEY = 'score';
+
+    var teamScoreList = $("#teamPoints");
+    var teamMemberList = $("#teamMembers");
+
+    // Get the start session response from server.
+    // This message should be received first before anything else.
+    // Message protocol:
+    // keys: @session_id, @player_id, @player_name, @new_unsorted_word
+    socket.on('startSession', function(msg) {
+        // Get the json object from msg
+        jsonObj = JSON.parse(msg);
+
+        // Get my information
+        if (my_session_id == null) {
+            my_session_id = jsonObj['@session_id'];
+            my_player_id = jsonObj['@player_id'];
+            my_name = jsonObj['@player_name'];
+        }
+        // Get team member's information
+        else {
+            target_session_id = jsonObj['@session_id'];
+            if (target_session_id == my_session_id) {
+                new_player_id = jsonObj['@player_id'];
+                new_player_name = jsonObj['@player_name'];
+                addPlayer(new_player_id, new_player_name);
+                refreshPlayerScoreList();
+            }
+        }
+
+        word = jsonObj['@new_unsorted_word'];
+
+        if (word != null) {
+            setWord(word);
+        }
+    });
+
+    // Get the letter insert command result from server.
+    // Message protocol:
+    // keys: @session_id, @player_id, @score_dif, @slot_if, @letter, @complete, @new_unsorted_word
+    socket.on('letterInsert', function (msg) {
+        jsonObj = JSON.parse(msg);
+
+        // First check the session id
+        session_id = jsonObj['@session_id'];
+        player_id = jsonObj['@player_id'];
+
+        if (session_id != my_session_id) return;
+
+        // Second check if the the letter is null
+        slot_id = jsonObj['@slot_id'];
+        inserted_letter = jsonObj['@letter'];
+
+        if (inserted_letter != null) {
+            // Update the letter slot
+            insertLetter(slot_id, inserted_letter);
+        }
+
+        // Then check the score change
+        score_dif = jsonObj['@score_dif'];
+
+        if (score_dif != null) {
+            player_score_list[player_id][PLAYER_SCORE_KEY] += score_dif
+        }
+
+        // Then check if this is the last move
+        is_complete = jsonObj['@complete'];
+
+        if (is_complete != null && is_complete) {
+            // Then we check the new word
+            new_word = jsonObj['@new_unsorted_word'];
+
+            if (new_word != null) {
+                setWord(new_word);
+            }
+        }
+
+        refreshPlayerScoreList();
+    });
+
+    function addPlayer(player_id, player_name) {
+        player_score_list[player_id] = {PLAYER_NAME_KEY: player_name, PLAYER_SCORE_KEY: 0};
+    }
+
+    function refreshPlayerScoreList() {
+
+        teamMemberList.html('');
+        clearTeamPoints();
+
+        for (var player_id in player_score_list) {
+            if (player_score_list.hasOwnProperty(player_id)) {
+                player_name = player_score_list[player_id][PLAYER_NAME_KEY];
+                player_score = player_score_list[player_id][PLAYER_SCORE_KEY];
+                teamMemberList.append('<li>' + reduceString(player_name, maxNameLength) + '<li>');
+                teamScoreList.append("<tr><td class=\"leftAlignedTable\">" + player_name +
+                        "</td><td class=\"rightAlignedTable\">" + player_score + "</td></tr>");
+            }
+        }
+    }
+
+    function clearTeamPoints() {
+        teamScoreList.html('');
+        teamScoreList.append('<tr><td class="leftAlignedTable">PLAYER</td><td class="rightAlignedTable">POINTS</td></tr>');
+    }
+
+    function insertLetter(slot_id, letter) {
+        var key = String.fromCharCode(letter).toUpperCase();
+
+        if (key in letterMap) {
+            var cardId = letterMap[key][0];
+
+            var positionSlot = $("#slot" + slot_id).offset();
+            var positionCard = $(cardId).offset();
+
+            dx = positionSlot.left - positionCard.left;
+            dy = positionSlot.top - positionCard.top;
+
+            $(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
+        }
+    }
 
     socket.on('word', function(msg){
       printMessage("Received word from server : " + msg + "\n");
@@ -40,28 +166,21 @@
     socket.on('name',function(msg){
 
     });
-    socket.on('teamMembers',function(msg){
-      printMessage("Received team members from server : " + msg + "\n");
-      $("#teamMembers").html('');
-      msg.forEach(function(member) {
-        $("#teamMembers").append('<li>' + reduceString(member, maxNameLength) + '<li>');
-      });
-      $("#teamMembers").append('<li>' + reduceString(name, maxNameLength) + '<li>');
-    });
     //------------socket.io
 
 
     function getLetters(word) {
-      var letters = word.slice();
-      var numLetters = hardMode ? maxLetters : word.length;
 
-      for (var i=word.length; i < numLetters; i++) {
-        letters.push(getRandomItemFromList(alphabet));
-      }
+      // Maybe not necessary to do it again here?
+//      var numLetters = hardMode ? maxLetters : word.length;
+//
+//      for (var i=word.length; i < numLetters; i++) {
+//        letters.push(getRandomItemFromList(alphabet));
+//      }
+//
+//      letters.sort( function() { return Math.random() - .5 } );
 
-      letters.sort( function() { return Math.random() - .5 } );
-
-      return letters
+      return word.slice();
     }
 
     function highlightCurrent() {
@@ -190,20 +309,10 @@
 
     }
 
+
+    // Let's disable the current key press event.
     $(document).keypress(function(event) {
-      var key = String.fromCharCode(event.charCode).toUpperCase()
-
-      if (key in letterMap) {
-        var cardId = letterMap[key][0];
-
-        var positionSlot = $("#slot"+currentCharacter).offset();
-        var positionCard = $(cardId).offset();
-
-        dx = positionSlot.left - positionCard.left;
-        dy = positionSlot.top - positionCard.top;
-
-        $(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
-      }
+      // insertLetter(currentCharacter, event.charCode);
     });
 
     function getTimeBonus() {
@@ -287,11 +396,6 @@
         <li>Your Team: <span id="yourTeam">XXXXXX<span></li>
         <li>Team Members:
           <ul id="teamMembers">
-            <li>XXXXXX</li>
-            <li>XXXXXX</li>
-            <li>XXXXXX</li>
-            <li>XXXXXX</li>
-            <li>XXXXXX</li>
           </ul>
         </li>
       </ul>
@@ -310,32 +414,8 @@
       <h1>Team Scores</h1>
       <table id="teamPoints">
         <tr>
-          <td class="leftAlignedTable">TEAM</td>
+          <td class="leftAlignedTable">PLAYER</td>
           <td class="rightAlignedTable">POINTS</td>
-        </tr>
-        <tr>
-          <td class="leftAlignedTable">XXXXXX</td>
-          <td class="rightAlignedTable">XXXXXX</td>
-        </tr>
-        <tr>
-          <td class="leftAlignedTable">XXXXXX</td>
-          <td class="rightAlignedTable">XXXXXX</td>
-        </tr>
-        <tr>
-          <td class="leftAlignedTable">XXXXXX</td>
-          <td class="rightAlignedTable">XXXXXX</td>
-        </tr>
-        <tr>
-          <td class="leftAlignedTable">XXXXXX</td>
-          <td class="rightAlignedTable">XXXXXX</td>
-        </tr>
-        <tr>
-          <td class="leftAlignedTable">XXXXXX</td>
-          <td class="rightAlignedTable">XXXXXX</td>
-        </tr>
-        <tr>
-          <td class="leftAlignedTable">XXXXXX</td>
-          <td class="rightAlignedTable">XXXXXX</td>
         </tr>
       </table>
     </div>

@@ -1,10 +1,10 @@
 /* Finger Pop Game - Server Input/Output.JS
  * Author:  Arun Hariharan Sivasubramaniyan
- * Subject: Distributed Algorithms, Project 1 
+ * Subject: Distributed Algorithms, Project 1
  * Revision: 1
  * Date revised: 12.4.2015
  */
- 
+
 //TODO: from server: serverlistener
 
 function getWord(socket) {
