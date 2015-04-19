@@ -1,0 +1,361 @@
+<!-- Finger Pop Game - Game.HTML
+ * Author:  Arun Hariharan Sivasubramaniyan
+ * Subject: Distributed Algorithms, Project 1 
+ * Revision: 1
+ * Date revised: 12.4.2015
+ -->
+
+<!doctype html>
+<html lang="en">
+<head>
+
+  <title>Finger Pop</title>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link rel="stylesheet" type="text/css" href='/stylesheets/style.css'>
+  <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+  <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+
+  <script type="text/javascript" src="/javascripts/lib/jquery.min.js"></script>
+  <script type="text/javascript" src="/javascripts/lib/jquery-ui.min.js"></script>
+  <script type="text/javascript" src="/javascripts/lib/jquery.simulate.js"></script>
+  <script type="text/javascript" src="/javascripts/lib/jquery.simulate.ext.js"></script>
+  <script type="text/javascript" src="/javascripts/lib/jquery.simulate.drag-n-drop.js"></script>
+
+  <script type="text/javascript" src="/javascripts/tools.js"></script>
+  <script type="text/javascript" src="/javascripts/globals.js"></script>
+  <script type="text/javascript" src="/javascripts/server-io.js"></script>
+  <script type="text/javascript">
+
+    //socket.io------------
+    var socket = io();
+
+    socket.on('word', function(msg){
+      printMessage("Received word from server : " + msg + "\n");
+      setWord(msg);
+    });
+    socket.on('team', function(msg){
+      printMessage("Received team from server : " + msg + "\n");
+      $("#yourTeam").html(msg);
+    });
+    socket.on('name',function(msg){
+
+    });
+    socket.on('teamMembers',function(msg){
+      printMessage("Received team members from server : " + msg + "\n");
+      $("#teamMembers").html('');
+      msg.forEach(function(member) {
+        $("#teamMembers").append('<li>' + reduceString(member, maxNameLength) + '<li>');
+      });
+      $("#teamMembers").append('<li>' + reduceString(name, maxNameLength) + '<li>');
+    });
+    //------------socket.io
+
+
+    function getLetters(word) {
+      var letters = word.slice();
+      var numLetters = hardMode ? maxLetters : word.length;
+
+      for (var i=word.length; i < numLetters; i++) {
+        letters.push(getRandomItemFromList(alphabet));
+      }
+
+      letters.sort( function() { return Math.random() - .5 } );
+
+      return letters
+    }
+
+    function highlightCurrent() {
+      $("#slot" + currentCharacter).css('border-color', 'red');
+      if (currentCharacter > 0) {
+        $("#slot" + (currentCharacter - 1)).css('border-color', 'black');
+      }
+    }
+
+    function placeChoices(letters) {
+      for (var i=0; i < Math.min(letters.length, maxLetters); i++) {
+        var letter = letters[i].toUpperCase();
+        $('<div>' + letter + '</div>').data('letter', letters[i] ).attr('id', 'card'+i).addClass("pileElement").appendTo('#cardPile').draggable( {
+          containment: '#content',
+          stack: '#cardPile div',
+          cursor: 'move',
+          revert: true
+        });
+
+        if (letter in letterMap) {
+          letterMap[letter].push('#card'+i);
+        } else {
+          letterMap[letter] = ['#card'+i];
+        }
+      }
+    }
+
+    function placeWordHint(word) {
+      for (var i=0; i < Math.min(word.length, maxWordLength); i++) {
+        var letter = word[i].toUpperCase();
+        var hint = debugMode ? letter : "";
+        $('<div>' + hint + '</div>').data( 'letter', word[i] ).data('id', i).addClass("slotElement").attr( 'id', 'slot'+i).appendTo('#cardSlots').droppable({
+          accept: '#cardPile div',
+          hoverClass: 'hovered',
+          drop: handleCardDrop
+        });
+      }
+    }
+
+    function displayCurrentLevel() {
+      $("#currentLevel").html(currentLevel);
+    }
+
+    function placeContent() {
+      enableKeypress = true;
+      currentCharacter = 0;
+      word = getWord(socket).split("");
+//      letters = getLetters(word);
+//      colorWheel = shuffleArray(colorWheel);
+//      letterMap = {};
+//
+//      $('#cardPile').html('');
+//      $('#cardSlots').html('');
+//
+//      placeChoices(letters);
+//      placeWordHint(word);
+//
+//      highlightCurrent();
+//      displayCurrentLevel();
+    }
+    function setWord(rawWord)
+    {
+      word = rawWord.split("");
+      letters = getLetters(word);
+      colorWheel = shuffleArray(colorWheel);
+      letterMap = {};
+
+      $('#cardPile').html('');
+      $('#cardSlots').html('');
+
+      placeChoices(letters);
+      placeWordHint(word);
+
+      highlightCurrent();
+      displayCurrentLevel();
+    }
+    function init() {
+
+      currentLevel = minWordLength;
+
+      placeContent();
+
+      queryName(socket);
+      displayTeam(socket);
+      displayTeamMembers(socket);
+
+      $('#console').val('');
+      printMessage("Welcome to the game, " + name + "!\n");
+    }
+
+    function handleCardDrop(event, ui) {
+      var slotLetter = $(this).data('letter').toUpperCase();
+      var slotId = $(this).data('id');
+      var cardLetter = ui.draggable.data('letter').toUpperCase();
+
+      if (slotId == currentCharacter) {
+        if (checkMove(slotId, cardLetter, slotLetter,socket)) {
+          ui.draggable.draggable('disable');
+          $(this).droppable('disable');
+          ui.draggable.position({of: $(this), my: 'center', at: 'center'});
+          ui.draggable.draggable('option', 'revert', false);
+          ui.draggable.css("background", colorWheel[currentCharacter]);
+          currentCharacter++;
+          index = letterMap[slotLetter].indexOf("#" + ui.draggable.attr('id'))
+          letterMap[slotLetter].splice(index, 1);
+          highlightCurrent();
+        } else {
+          printMessage("You made a mistake!\n");
+          printHiddenWord();
+          printMessage("Try again? (reload page)\n");
+          gameOver();
+        }
+
+        if (currentCharacter >= word.length) {
+          printMessage("Great!\n");
+          if (word.length == maxWordLength) {
+            printMessage("YOU WON!\n");
+            gameOver();
+          } else {
+            timeBonus = true;
+            currentLevel++;
+            placeContent();
+          }
+        }
+      }
+
+    }
+
+    $(document).keypress(function(event) {
+      var key = String.fromCharCode(event.charCode).toUpperCase()
+
+      if (key in letterMap) {
+        var cardId = letterMap[key][0];
+
+        var positionSlot = $("#slot"+currentCharacter).offset();
+        var positionCard = $(cardId).offset();
+
+        dx = positionSlot.left - positionCard.left;
+        dy = positionSlot.top - positionCard.top;
+
+        $(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
+      }
+    });
+
+    function getTimeBonus() {
+      return addTime * currentLevel;
+    }
+
+    function startTimer(duration, dangerTime, display, event) {
+      display.css("color", "blue");
+      var timer = duration, minutes, seconds;
+      tid = setInterval(function () {
+        if (timeBonus) {
+          var bonus = getTimeBonus();
+          timer += bonus;
+          timeBonus = false;
+          $("#timeBonus").html("(+" + bonus +"s)")
+          $("#timeBonus").show();
+          $("#timeBonus").fadeOut(2000);
+        }
+
+        minutes = parseInt(timer / 60, 10);
+        seconds = parseInt(timer % 60, 10);
+
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        seconds = seconds < 10 ? "0" + seconds : seconds;
+
+        display.text(minutes + ":" + seconds);
+
+        if (timer <= dangerTime) {
+          display.css("color", "red");
+        }
+
+        if (--timer < 0) {
+          printMessage("Time ran out...\n");
+          printHiddenWord();
+          clearInterval(tid);
+          event();
+        }
+      }, 1000);
+    }
+
+    function printHiddenWord() {
+      printMessage("The hidden word was: " + word.join('') + "\n");
+    }
+
+    function gameOver(fail) {
+      clearInterval(tid);
+      printMessage("GAME OVER!\n");
+      $("#time").html('-');
+      $(".pileElement").draggable('disable');
+    }
+
+    function printMessage(message) {
+      var txt = $("textarea#console");
+      txt.val(message + txt.val());
+    }
+
+    $(document).ready(function () {
+      $(init);
+      startTimer(startTime, dangerTime, $('#time'), gameOver);
+    });
+
+  </script>
+
+</head>
+
+<body>
+
+<div id="main">
+  <div id="stats">
+    <div id="score">
+      <h1>Scores</h1>
+      <ul>
+        <li>Current Score: <span id="currentScore">XXXXXX<span></li>
+        <li>To win: <span id="toWin">XXXXXX<span></li>
+        <li>Bonus at: <span id="bonusAt">XXXXXX<span></li>
+      </ul>
+    </div>
+    <div id="team">
+      <h1>Team Info</h1>
+      <ul>
+        <li>Your Team: <span id="yourTeam">XXXXXX<span></li>
+        <li>Team Members:
+          <ul id="teamMembers">
+            <li>XXXXXX</li>
+            <li>XXXXXX</li>
+            <li>XXXXXX</li>
+            <li>XXXXXX</li>
+            <li>XXXXXX</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    <div id="records">
+      <h1>Records</h1>
+      <ul>
+        <li>Current Level: <span id="currentLevel">XXXXXX<span></li>
+        <li>Total Score: <span id="totalScore">XXXXXX<span></li>
+        <li>Wins: <span id="wins">XXXXXX<span></li>
+        <li>Losses: <span id="fastestWin">XXXXXX<span></li>
+        <li>Fastest win: <span id="fastestWin">XXXXXX<span></li>
+      </ul>
+    </div>
+    <div id="teamScores">
+      <h1>Team Scores</h1>
+      <table id="teamPoints">
+        <tr>
+          <td class="leftAlignedTable">TEAM</td>
+          <td class="rightAlignedTable">POINTS</td>
+        </tr>
+        <tr>
+          <td class="leftAlignedTable">XXXXXX</td>
+          <td class="rightAlignedTable">XXXXXX</td>
+        </tr>
+        <tr>
+          <td class="leftAlignedTable">XXXXXX</td>
+          <td class="rightAlignedTable">XXXXXX</td>
+        </tr>
+        <tr>
+          <td class="leftAlignedTable">XXXXXX</td>
+          <td class="rightAlignedTable">XXXXXX</td>
+        </tr>
+        <tr>
+          <td class="leftAlignedTable">XXXXXX</td>
+          <td class="rightAlignedTable">XXXXXX</td>
+        </tr>
+        <tr>
+          <td class="leftAlignedTable">XXXXXX</td>
+          <td class="rightAlignedTable">XXXXXX</td>
+        </tr>
+        <tr>
+          <td class="leftAlignedTable">XXXXXX</td>
+          <td class="rightAlignedTable">XXXXXX</td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+  <div id="content">
+
+    <div id="cardSlots"> </div>
+    <div id="cardPile"> </div>
+    <div id="timer">
+      <div>Time remaining: <span id="time">**:**</span><span id="timeBonus"></span></div>
+    </div>
+    <div id="messages">
+      <h1>Messages</h1>
+      <textarea id="console" rows="14" cols="90" readonly>XXXXXXXXXXXXXXXXXXXXX</textarea>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
+

@@ -1,0 +1,213 @@
+/* Finger Pop Game - Stylesheet
+ * Author:  Arun Hariharan Sivasubramaniyan
+ * Subject: Distributed Algorithms, Project 1 
+ * Revision: 1
+ * Date revised: 12.4.2015
+ */
+
+html,body {
+  height: 768pt;
+  width: 880pt;
+}
+
+body {
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+  color: #333;
+}
+
+h1, h2, h3, h4 {
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+  font-size: 20px;
+  margin: 0;
+}
+
+#main {
+  text-align: center;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#content {
+  text-align: center;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  width: 695pt;
+  height: 600pt;
+  float: right;
+}
+
+#stats {
+  text-align: left;
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  width: 150pt;
+  height: 600pt;
+  float: left;
+  font-size: 9pt;
+}
+
+#cardSlots {
+  margin: 10px auto 0 auto;
+  background: #ddf;
+  height: 100px;
+}
+
+#cardPile {
+  margin: 10px auto 0 auto;
+  background: #ffd;
+  height: 280px;
+}
+
+#timer {
+  margin: 10px auto 0 auto;
+  background: #fdd;
+  height: 40px;
+  font-size: 30px;
+  color: blue;
+  font-weight: bold;
+}
+
+#messages {
+  margin: 10px auto 0 auto;
+  background: #fdd;
+  height: 280px;
+}
+
+#cardPile, #cardSlots, #timer, #score, #team, #records, #teamScores, #messages {
+  padding: 20px;
+  border: 2px solid #333;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  -moz-box-shadow: 0 0 .3em rgba(0, 0, 0, .8);
+  -webkit-box-shadow: 0 0 .3em rgba(0, 0, 0, .8);
+  box-shadow: 0 0 .3em rgba(0, 0, 0, .8);
+}
+
+#cardSlots div, #cardPile div {
+  float: left;
+  width: 73.25px;
+  height: 73.25px;
+  border: 3px solid #333;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  background: #fff;
+  margin: 5px;
+  line-height: 73.25px;
+  font-weight: bold;
+  font-size: 35px;
+  cursor: pointer;
+}
+
+#cardPile div {
+  border: 3px solid #333;
+}
+
+#cardSlots div {
+  border: 1px solid #333;
+  width: 72px;
+  height: 72px;
+  line-height: 71px;
+}
+
+#score {
+  margin: 10px auto 0 auto;
+  width: 100%;
+  height: 100px;
+  background: #fdf;
+}
+
+#team, #records, #teamScores {
+  margin: 10px auto 0 auto;
+  width: 100%;
+  height: 25%;
+  background: #fdf;
+}
+
+ul {
+  text-align: left;
+  list-style-position: inside;
+  list-style-type: none;
+  padding: 0;
+}
+
+ul li {
+  color: red;
+  font-weight: bold;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+}
+
+ul li span {
+  color: blue;
+  float: right;
+}
+
+#teamMembers {
+  float: right;
+  text-align: right;
+}
+
+#teamMembers li {
+  color: blue;
+}
+
+#teamPoints {
+  width: 100%;
+  margin: 0 auto;
+  font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+  padding: 0;
+}
+#teamPoints td {
+  width: 50%;
+}
+
+#teamPoints .leftAlignedTable {
+  text-align: left;
+}
+
+#teamPoints .rightAlignedTable {
+  text-align: right;
+}
+
+#teamPoints tr:first-child td {
+  color: red;
+  font-weight: bold;
+}
+
+#console {
+  resize: none;
+  margin: 10px;
+  overflow: hidden;
+  width: 90%;
+}
+
+#cardSlots div.hovered {
+  background: #aaa;
+}
+
+#cardSlots div {
+  border-style: dashed;
+  font-size: 10px;
+}
+
+#cardPile div {
+  background: #666;
+  color: #fff;
+  text-shadow: 0 0 3px #000;
+}
+
+#cardPile div.ui-draggable-dragging {
+  -moz-box-shadow: 0 0 .5em rgba(0, 0, 0, .8);
+  -webkit-box-shadow: 0 0 .5em rgba(0, 0, 0, .8);
+  box-shadow: 0 0 .5em rgba(0, 0, 0, .8);
+}
+
+.hide-text {
+  text-indent: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+}
