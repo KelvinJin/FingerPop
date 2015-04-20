@@ -4,7 +4,7 @@ class WordListManager
   include Singleton
 
   def load_word_list word_list_file
-    @word_list = File.new(word_list_file).readlines.map { |l| l.chomp }
+    @word_list = File.new(word_list_file).readlines.delete_if { |l| l.chomp.length > 5 }. map { |l| l.chomp }
   end
 
   def random_words num

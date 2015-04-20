@@ -20,7 +20,7 @@ var minWordLength = 3;
 var alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
 var maxLetters = 30;
 
-var startTime = 15;
+var startTime = 100;
 var addTime = 5;
 var dangerTime = 5;
 var tid;

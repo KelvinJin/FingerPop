@@ -44,6 +44,5 @@ function queryName(socket) {
 
 function checkMove(slotId, cardLetter, slotLetter,socket) {
   //TODO: server communication
-  socket.emit('message',cardLetter);
   return (slotLetter == cardLetter);
 }

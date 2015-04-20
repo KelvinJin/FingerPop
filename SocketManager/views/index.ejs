@@ -36,9 +36,6 @@
     var PLAYER_NAME_KEY = 'name';
     var PLAYER_SCORE_KEY = 'score';
 
-    var teamScoreList = $("#teamPoints");
-    var teamMemberList = $("#teamMembers");
-
     // Get the start session response from server.
     // This message should be received first before anything else.
     // Message protocol:
@@ -49,9 +46,12 @@
 
         // Get my information
         if (my_session_id == null) {
+            printMessage("Get session start result");
             my_session_id = jsonObj['@session_id'];
             my_player_id = jsonObj['@player_id'];
             my_name = jsonObj['@player_name'];
+            addPlayer(my_player_id, my_name);
+            refreshPlayerScoreList();
         }
         // Get team member's information
         else {
@@ -74,7 +74,9 @@
     // Get the letter insert command result from server.
     // Message protocol:
     // keys: @session_id, @player_id, @score_dif, @slot_if, @letter, @complete, @new_unsorted_word
-    socket.on('letterInsert', function (msg) {
+    socket.on('letterInserted', function (msg) {
+        printMessage("Get new letter insertion" + "   " + msg);
+
         jsonObj = JSON.parse(msg);
 
         // First check the session id
@@ -83,15 +85,6 @@
 
         if (session_id != my_session_id) return;
 
-        // Second check if the the letter is null
-        slot_id = jsonObj['@slot_id'];
-        inserted_letter = jsonObj['@letter'];
-
-        if (inserted_letter != null) {
-            // Update the letter slot
-            insertLetter(slot_id, inserted_letter);
-        }
-
         // Then check the score change
         score_dif = jsonObj['@score_dif'];
 
@@ -99,26 +92,59 @@
             player_score_list[player_id][PLAYER_SCORE_KEY] += score_dif
         }
 
-        // Then check if this is the last move
-        is_complete = jsonObj['@complete'];
 
-        if (is_complete != null && is_complete) {
-            // Then we check the new word
-            new_word = jsonObj['@new_unsorted_word'];
+        // Second check if the the letter is null
+        slot_id = jsonObj['@slot_id'];
+        inserted_letter = jsonObj['@letter'];
 
-            if (new_word != null) {
-                setWord(new_word);
+        if (inserted_letter != null) {
+            // Update the letter slot
+            insertLetter(slot_id, inserted_letter);
+
+            // Then check if this is the last move
+            is_complete = jsonObj['@complete'];
+
+            if (is_complete != null && is_complete) {
+                // Then we check the new word
+                new_word = jsonObj['@new_unsorted_word'];
+
+                printMessage(new_word);
+
+                if (new_word != null) {
+                    printMessage("Get new word");
+
+                    setWord(new_word);
+                    timeBonus = true;
+                    placeContent();
+                }
             }
         }
 
         refreshPlayerScoreList();
     });
 
+    // Let's disable the current key press event.
+    $(document).keypress(function(event) {
+        // insertLetter(currentCharacter, event.charCode);
+        var keyPressed = String.fromCharCode(event.charCode).toLowerCase();
+
+        var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
+                ",\"@player_id\":\"" + my_player_id + "\",\"@card_letter\":\"" + keyPressed +
+                "\",\"@slot_id\":" + currentCharacter + "}}";
+
+        socket.emit('letterInserting', msg);
+    });
+
     function addPlayer(player_id, player_name) {
-        player_score_list[player_id] = {PLAYER_NAME_KEY: player_name, PLAYER_SCORE_KEY: 0};
+        player_score_list[player_id] = {};
+        player_score_list[player_id][PLAYER_NAME_KEY] = player_name;
+        player_score_list[player_id][PLAYER_SCORE_KEY] = 0;
     }
 
     function refreshPlayerScoreList() {
+
+        var teamScoreList = $("#teamPoints");
+        var teamMemberList = $("#teamMembers");
 
         teamMemberList.html('');
         clearTeamPoints();
@@ -127,7 +153,8 @@
             if (player_score_list.hasOwnProperty(player_id)) {
                 player_name = player_score_list[player_id][PLAYER_NAME_KEY];
                 player_score = player_score_list[player_id][PLAYER_SCORE_KEY];
-                teamMemberList.append('<li>' + reduceString(player_name, maxNameLength) + '<li>');
+
+                teamMemberList.append('<li>' + reduceString(player_name+"", maxNameLength) + '<li>');
                 teamScoreList.append("<tr><td class=\"leftAlignedTable\">" + player_name +
                         "</td><td class=\"rightAlignedTable\">" + player_score + "</td></tr>");
             }
@@ -135,12 +162,14 @@
     }
 
     function clearTeamPoints() {
+        var teamScoreList = $("#teamPoints");
+
         teamScoreList.html('');
         teamScoreList.append('<tr><td class="leftAlignedTable">PLAYER</td><td class="rightAlignedTable">POINTS</td></tr>');
     }
 
     function insertLetter(slot_id, letter) {
-        var key = String.fromCharCode(letter).toUpperCase();
+        var key = letter.toUpperCase();
 
         if (key in letterMap) {
             var cardId = letterMap[key][0];
@@ -152,20 +181,17 @@
             dy = positionSlot.top - positionCard.top;
 
             $(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
+
+            insertedLetter(slot_id, letter);
         }
     }
 
-    socket.on('word', function(msg){
-      printMessage("Received word from server : " + msg + "\n");
-      setWord(msg);
-    });
-    socket.on('team', function(msg){
-      printMessage("Received team from server : " + msg + "\n");
-      $("#yourTeam").html(msg);
-    });
-    socket.on('name',function(msg){
+    function insertedLetter(slot_id, letter) {
+        currentCharacter++;
+        // letterMap[letter].splice(0, 1);
+        highlightCurrent();
+    }
 
-    });
     //------------socket.io
 
 
@@ -276,44 +302,12 @@
       var slotId = $(this).data('id');
       var cardLetter = ui.draggable.data('letter').toUpperCase();
 
-      if (slotId == currentCharacter) {
-        if (checkMove(slotId, cardLetter, slotLetter,socket)) {
-          ui.draggable.draggable('disable');
-          $(this).droppable('disable');
-          ui.draggable.position({of: $(this), my: 'center', at: 'center'});
-          ui.draggable.draggable('option', 'revert', false);
-          ui.draggable.css("background", colorWheel[currentCharacter]);
-          currentCharacter++;
-          index = letterMap[slotLetter].indexOf("#" + ui.draggable.attr('id'))
-          letterMap[slotLetter].splice(index, 1);
-          highlightCurrent();
-        } else {
-          printMessage("You made a mistake!\n");
-          printHiddenWord();
-          printMessage("Try again? (reload page)\n");
-          gameOver();
-        }
-
-        if (currentCharacter >= word.length) {
-          printMessage("Great!\n");
-          if (word.length == maxWordLength) {
-            printMessage("YOU WON!\n");
-            gameOver();
-          } else {
-            timeBonus = true;
-            currentLevel++;
-            placeContent();
-          }
-        }
-      }
-
+        ui.draggable.draggable('disable');
+        $(this).droppable('disable');
+        ui.draggable.position({of: $(this), my: 'center', at: 'center'});
+        ui.draggable.draggable('option', 'revert', false);
+        ui.draggable.css("background", colorWheel[currentCharacter]);
     }
-
-
-    // Let's disable the current key press event.
-    $(document).keypress(function(event) {
-      // insertLetter(currentCharacter, event.charCode);
-    });
 
     function getTimeBonus() {
       return addTime * currentLevel;

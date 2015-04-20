@@ -30,5 +30,5 @@ function getUrlParameter(sParam) {
 }
 
 function reduceString(string, maxLength) {
-  return string.length > maxLength ? name.slice(0, maxLength - 1) + "~" : string;
+  return string.length > maxLength ? string.slice(0, maxLength - 1) + "~" : string;
 }
