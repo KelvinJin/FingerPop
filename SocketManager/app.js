@@ -12,7 +12,7 @@ var bodyParser = require('body-parser');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 var app = express();
-var server = app.listen(3000);
+var server = app.listen(3333);
 var net = require('net');
 
 /***************************** General Setups ***************************/
