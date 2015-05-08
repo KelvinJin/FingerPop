@@ -104,17 +104,17 @@
 	}
 	
 	/**
-	 * Converts page relative coordinates into client relative coordinates.
+	 * Converts page relative coordinates into unix_socket relative coordinates.
 	 * @param {Numeric|Object} x - Either the x coordinate of the page relative coordinates or
 	 * an object with the properties <code>pageX</code> and <code>pageY</code> representing page
 	 * relative coordinates.
 	 * @param {Numeric} [y] - If <i>x</i> is numeric (i.e. the x coordinate of page relative coordinates),
 	 * then this is the y coordinate. If <i>x</i> is an object, this parameter is skipped.
-	 * @param {DOM Document} [docRel] - Optional DOM document object used to calculate the client relative
+	 * @param {DOM Document} [docRel] - Optional DOM document object used to calculate the unix_socket relative
 	 * coordinates. The page relative coordinates are interpreted as being relative to that document and
-	 * the scroll position of that document is used to calculate the client relative coordinates.
+	 * the scroll position of that document is used to calculate the unix_socket relative coordinates.
 	 * By default, <code>document</code> is used.
-	 * @returns {Object} an object representing the client relative coordinates corresponding to the
+	 * @returns {Object} an object representing the unix_socket relative coordinates corresponding to the
 	 * given page relative coordinates. The object either provides the properties <code>x</code> and
 	 * <code>y</code> when <i>x</i> and <i>y</i> were given as arguments, or <code>clientX</code>
 	 * and <code>clientY</code> when the parameter <i>x</i> was given as an object (see above).
@@ -151,9 +151,9 @@
 	 * <code>document.elementFromPoint()</code> is implemented in the current browser. It stores
 	 * the results in two static variables so that the check can be skipped for successive calls.
 	 * 
-	 * @param {Numeric|Object} x - Either the x coordinate of client relative coordinates or an object
-	 * with the properties <code>x</code> and <code>y</code> representing client relative coordinates.
-	 * @param {Numeric} [y] - If <i>x</i> is numeric (i.e. the x coordinate of client relative coordinates),
+	 * @param {Numeric|Object} x - Either the x coordinate of unix_socket relative coordinates or an object
+	 * with the properties <code>x</code> and <code>y</code> representing unix_socket relative coordinates.
+	 * @param {Numeric} [y] - If <i>x</i> is numeric (i.e. the x coordinate of unix_socket relative coordinates),
 	 * this is the y coordinate. If <i>x</i> is an object, this parameter is skipped.
 	 * @param {DOM Document} [docRel] - Optional DOM document object
 	 * @returns {DOM Element|Null}

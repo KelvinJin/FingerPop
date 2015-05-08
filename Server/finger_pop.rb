@@ -10,7 +10,7 @@ require 'json'
 require 'socket'
 require 'thread'
 
-MAX_PLAYER_NUMBER_PER_GAME = 5
+MAX_PLAYER_NUMBER_PER_GAME = 3
 ENGLISH_WORD_LIST_FILE = Dir.pwd + '/Resources/en.txt'
 
 class FingerPop

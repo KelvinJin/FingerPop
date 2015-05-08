@@ -9,195 +9,195 @@
 <html lang="en">
 <head>
 
-  <title>Finger Pop</title>
-  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" type="text/css" href='/stylesheets/style.css'>
-  <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
-  <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <title>Finger Pop</title>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <link rel="stylesheet" type="text/css" href='/stylesheets/style.css'>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
 
-  <script type="text/javascript" src="/javascripts/lib/jquery.min.js"></script>
-  <script type="text/javascript" src="/javascripts/lib/jquery-ui.min.js"></script>
-  <script type="text/javascript" src="/javascripts/lib/jquery.simulate.js"></script>
-  <script type="text/javascript" src="/javascripts/lib/jquery.simulate.ext.js"></script>
-  <script type="text/javascript" src="/javascripts/lib/jquery.simulate.drag-n-drop.js"></script>
+    <script type="text/javascript" src="/javascripts/lib/jquery.min.js"></script>
+    <script type="text/javascript" src="/javascripts/lib/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="/javascripts/lib/jquery.simulate.js"></script>
+    <script type="text/javascript" src="/javascripts/lib/jquery.simulate.ext.js"></script>
+    <script type="text/javascript" src="/javascripts/lib/jquery.simulate.drag-n-drop.js"></script>
 
-  <script type="text/javascript" src="/javascripts/tools.js"></script>
-  <script type="text/javascript" src="/javascripts/globals.js"></script>
-  <script type="text/javascript" src="/javascripts/server-io.js"></script>
-  <script type="text/javascript">
+    <script type="text/javascript" src="/javascripts/tools.js"></script>
+    <script type="text/javascript" src="/javascripts/globals.js"></script>
+    <script type="text/javascript" src="/javascripts/server-io.js"></script>
+    <script type="text/javascript">
 
-    //socket.io------------
-    var socket = io();
-    var my_session_id = null;
-    var my_player_id = null;
-    var my_name = null;
-    var player_score_list = {};
+        //socket.listener------------
+        var socket = io();
+        var my_session_id = null;
+        var my_player_id = null;
+        var my_name = null;
+        var player_score_list = {};
 
-    var PLAYER_NAME_KEY = 'name';
-    var PLAYER_SCORE_KEY = 'score';
+        var PLAYER_NAME_KEY = 'name';
+        var PLAYER_SCORE_KEY = 'score';
 
-    // Get the start session response from server.
-    // This message should be received first before anything else.
-    // Message protocol:
-    // keys: @session_id, @player_id, @player_name, @new_unsorted_word
-    socket.on('startSession', function(msg) {
-        // Get the json object from msg
-        jsonObj = JSON.parse(msg);
+        // Get the start session response from server.
+        // This message should be received first before anything else.
+        // Message protocol:
+        // keys: @session_id, @player_id, @player_name, @new_unsorted_word
+        socket.on('startSession', function (msg) {
+            // Get the json object from msg
+            jsonObj = JSON.parse(msg);
 
-        // Get my information
-        if (my_session_id == null) {
-            printMessage("Get session start result");
-            my_session_id = jsonObj['@session_id'];
-            my_player_id = jsonObj['@player_id'];
-            my_name = jsonObj['@player_name'];
-            addPlayer(my_player_id, my_name);
-            refreshPlayerScoreList();
-        }
-        // Get team member's information
-        else {
-            target_session_id = jsonObj['@session_id'];
-            if (target_session_id == my_session_id) {
-                new_player_id = jsonObj['@player_id'];
-                new_player_name = jsonObj['@player_name'];
-                addPlayer(new_player_id, new_player_name);
+            // Get my information
+            if (my_session_id == null) {
+                printMessage("Get session start result");
+                my_session_id = jsonObj['@session_id'];
+                my_player_id = jsonObj['@player_id'];
+                my_name = jsonObj['@player_name'];
+                addPlayer(my_player_id, my_name);
                 refreshPlayerScoreList();
             }
+            // Get team member's information
+            else {
+                target_session_id = jsonObj['@session_id'];
+                if (target_session_id == my_session_id) {
+                    new_player_id = jsonObj['@player_id'];
+                    new_player_name = jsonObj['@player_name'];
+                    addPlayer(new_player_id, new_player_name);
+                    refreshPlayerScoreList();
+                }
+            }
+
+            word = jsonObj['@new_unsorted_word'];
+
+            if (word != null) {
+                setWord(word);
+            }
+        });
+
+        // Get the letter insert command result from server.
+        // Message protocol:
+        // keys: @session_id, @player_id, @score_dif, @slot_if, @letter, @complete, @new_unsorted_word
+        socket.on('letterInserted', function (msg) {
+            printMessage("Get new letter insertion" + "   " + msg);
+
+            jsonObj = JSON.parse(msg);
+
+            // First check the session id
+            session_id = jsonObj['@session_id'];
+            player_id = jsonObj['@player_id'];
+
+            if (session_id != my_session_id) return;
+
+            // Then check the score change
+            score_dif = jsonObj['@score_dif'];
+
+            if (score_dif != null) {
+                player_score_list[player_id][PLAYER_SCORE_KEY] += score_dif
+            }
+
+
+            // Second check if the the letter is null
+            slot_id = jsonObj['@slot_id'];
+            inserted_letter = jsonObj['@letter'];
+
+            if (inserted_letter != null) {
+                // Update the letter slot
+                insertLetter(slot_id, inserted_letter);
+
+                // Then check if this is the last move
+                is_complete = jsonObj['@complete'];
+
+                if (is_complete != null && is_complete) {
+                    // Then we check the new word
+                    new_word = jsonObj['@new_unsorted_word'];
+
+                    printMessage(new_word);
+
+                    if (new_word != null) {
+                        printMessage("Get new word");
+
+                        setWord(new_word);
+                        timeBonus = true;
+                        placeContent();
+                    }
+                }
+            }
+
+            refreshPlayerScoreList();
+        });
+
+        // Let's disable the current key press event.
+        $(document).keypress(function (event) {
+            // insertLetter(currentCharacter, event.charCode);
+            var keyPressed = String.fromCharCode(event.charCode).toLowerCase();
+
+            var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
+                    ",\"@player_id\":\"" + my_player_id + "\",\"@card_letter\":\"" + keyPressed +
+                    "\",\"@slot_id\":" + currentCharacter + "}}";
+
+            socket.emit('letterInserting', msg);
+        });
+
+        function addPlayer(player_id, player_name) {
+            player_score_list[player_id] = {};
+            player_score_list[player_id][PLAYER_NAME_KEY] = player_name;
+            player_score_list[player_id][PLAYER_SCORE_KEY] = 0;
         }
 
-        word = jsonObj['@new_unsorted_word'];
+        function refreshPlayerScoreList() {
 
-        if (word != null) {
-            setWord(word);
-        }
-    });
+            var teamScoreList = $("#teamPoints");
+            var teamMemberList = $("#teamMembers");
 
-    // Get the letter insert command result from server.
-    // Message protocol:
-    // keys: @session_id, @player_id, @score_dif, @slot_if, @letter, @complete, @new_unsorted_word
-    socket.on('letterInserted', function (msg) {
-        printMessage("Get new letter insertion" + "   " + msg);
+            teamMemberList.html('');
+            clearTeamPoints();
 
-        jsonObj = JSON.parse(msg);
+            for (var player_id in player_score_list) {
+                if (player_score_list.hasOwnProperty(player_id)) {
+                    player_name = player_score_list[player_id][PLAYER_NAME_KEY];
+                    player_score = player_score_list[player_id][PLAYER_SCORE_KEY];
 
-        // First check the session id
-        session_id = jsonObj['@session_id'];
-        player_id = jsonObj['@player_id'];
-
-        if (session_id != my_session_id) return;
-
-        // Then check the score change
-        score_dif = jsonObj['@score_dif'];
-
-        if (score_dif != null) {
-            player_score_list[player_id][PLAYER_SCORE_KEY] += score_dif
-        }
-
-
-        // Second check if the the letter is null
-        slot_id = jsonObj['@slot_id'];
-        inserted_letter = jsonObj['@letter'];
-
-        if (inserted_letter != null) {
-            // Update the letter slot
-            insertLetter(slot_id, inserted_letter);
-
-            // Then check if this is the last move
-            is_complete = jsonObj['@complete'];
-
-            if (is_complete != null && is_complete) {
-                // Then we check the new word
-                new_word = jsonObj['@new_unsorted_word'];
-
-                printMessage(new_word);
-
-                if (new_word != null) {
-                    printMessage("Get new word");
-
-                    setWord(new_word);
-                    timeBonus = true;
-                    placeContent();
+                    teamMemberList.append('<li>' + reduceString(player_name + "", maxNameLength) + '<li>');
+                    teamScoreList.append("<tr><td class=\"leftAlignedTable\">" + player_name +
+                            "</td><td class=\"rightAlignedTable\">" + player_score + "</td></tr>");
                 }
             }
         }
 
-        refreshPlayerScoreList();
-    });
+        function clearTeamPoints() {
+            var teamScoreList = $("#teamPoints");
 
-    // Let's disable the current key press event.
-    $(document).keypress(function(event) {
-        // insertLetter(currentCharacter, event.charCode);
-        var keyPressed = String.fromCharCode(event.charCode).toLowerCase();
+            teamScoreList.html('');
+            teamScoreList.append('<tr><td class="leftAlignedTable">PLAYER</td><td class="rightAlignedTable">POINTS</td></tr>');
+        }
 
-        var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
-                ",\"@player_id\":\"" + my_player_id + "\",\"@card_letter\":\"" + keyPressed +
-                "\",\"@slot_id\":" + currentCharacter + "}}";
+        function insertLetter(slot_id, letter) {
+            var key = letter.toUpperCase();
 
-        socket.emit('letterInserting', msg);
-    });
+            if (key in letterMap) {
+                var cardId = letterMap[key][0];
 
-    function addPlayer(player_id, player_name) {
-        player_score_list[player_id] = {};
-        player_score_list[player_id][PLAYER_NAME_KEY] = player_name;
-        player_score_list[player_id][PLAYER_SCORE_KEY] = 0;
-    }
+                var positionSlot = $("#slot" + slot_id).offset();
+                var positionCard = $(cardId).offset();
 
-    function refreshPlayerScoreList() {
+                dx = positionSlot.left - positionCard.left;
+                dy = positionSlot.top - positionCard.top;
 
-        var teamScoreList = $("#teamPoints");
-        var teamMemberList = $("#teamMembers");
+                $(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
 
-        teamMemberList.html('');
-        clearTeamPoints();
-
-        for (var player_id in player_score_list) {
-            if (player_score_list.hasOwnProperty(player_id)) {
-                player_name = player_score_list[player_id][PLAYER_NAME_KEY];
-                player_score = player_score_list[player_id][PLAYER_SCORE_KEY];
-
-                teamMemberList.append('<li>' + reduceString(player_name+"", maxNameLength) + '<li>');
-                teamScoreList.append("<tr><td class=\"leftAlignedTable\">" + player_name +
-                        "</td><td class=\"rightAlignedTable\">" + player_score + "</td></tr>");
+                insertedLetter(slot_id, letter);
             }
         }
-    }
 
-    function clearTeamPoints() {
-        var teamScoreList = $("#teamPoints");
-
-        teamScoreList.html('');
-        teamScoreList.append('<tr><td class="leftAlignedTable">PLAYER</td><td class="rightAlignedTable">POINTS</td></tr>');
-    }
-
-    function insertLetter(slot_id, letter) {
-        var key = letter.toUpperCase();
-
-        if (key in letterMap) {
-            var cardId = letterMap[key][0];
-
-            var positionSlot = $("#slot" + slot_id).offset();
-            var positionCard = $(cardId).offset();
-
-            dx = positionSlot.left - positionCard.left;
-            dy = positionSlot.top - positionCard.top;
-
-            $(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
-
-            insertedLetter(slot_id, letter);
+        function insertedLetter(slot_id, letter) {
+            currentCharacter ++;
+            // letterMap[letter].splice(0, 1);
+            highlightCurrent();
         }
-    }
 
-    function insertedLetter(slot_id, letter) {
-        currentCharacter++;
-        // letterMap[letter].splice(0, 1);
-        highlightCurrent();
-    }
-
-    //------------socket.io
+        //------------socket.listener
 
 
-    function getLetters(word) {
+        function getLetters(word) {
 
-      // Maybe not necessary to do it again here?
+            // Maybe not necessary to do it again here?
 //      var numLetters = hardMode ? maxLetters : word.length;
 //
 //      for (var i=word.length; i < numLetters; i++) {
@@ -206,54 +206,54 @@
 //
 //      letters.sort( function() { return Math.random() - .5 } );
 
-      return word.slice();
-    }
-
-    function highlightCurrent() {
-      $("#slot" + currentCharacter).css('border-color', 'red');
-      if (currentCharacter > 0) {
-        $("#slot" + (currentCharacter - 1)).css('border-color', 'black');
-      }
-    }
-
-    function placeChoices(letters) {
-      for (var i=0; i < Math.min(letters.length, maxLetters); i++) {
-        var letter = letters[i].toUpperCase();
-        $('<div>' + letter + '</div>').data('letter', letters[i] ).attr('id', 'card'+i).addClass("pileElement").appendTo('#cardPile').draggable( {
-          containment: '#content',
-          stack: '#cardPile div',
-          cursor: 'move',
-          revert: true
-        });
-
-        if (letter in letterMap) {
-          letterMap[letter].push('#card'+i);
-        } else {
-          letterMap[letter] = ['#card'+i];
+            return word.slice();
         }
-      }
-    }
 
-    function placeWordHint(word) {
-      for (var i=0; i < Math.min(word.length, maxWordLength); i++) {
-        var letter = word[i].toUpperCase();
-        var hint = debugMode ? letter : "";
-        $('<div>' + hint + '</div>').data( 'letter', word[i] ).data('id', i).addClass("slotElement").attr( 'id', 'slot'+i).appendTo('#cardSlots').droppable({
-          accept: '#cardPile div',
-          hoverClass: 'hovered',
-          drop: handleCardDrop
-        });
-      }
-    }
+        function highlightCurrent() {
+            $("#slot" + currentCharacter).css('border-color', 'red');
+            if (currentCharacter > 0) {
+                $("#slot" + (currentCharacter - 1)).css('border-color', 'black');
+            }
+        }
 
-    function displayCurrentLevel() {
-      $("#currentLevel").html(currentLevel);
-    }
+        function placeChoices(letters) {
+            for (var i = 0; i < Math.min(letters.length, maxLetters); i ++) {
+                var letter = letters[i].toUpperCase();
+                $('<div>' + letter + '</div>').data('letter', letters[i]).attr('id', 'card' + i).addClass("pileElement").appendTo('#cardPile').draggable({
+                    containment: '#content',
+                    stack: '#cardPile div',
+                    cursor: 'move',
+                    revert: true
+                });
 
-    function placeContent() {
-      enableKeypress = true;
-      currentCharacter = 0;
-      word = getWord(socket).split("");
+                if (letter in letterMap) {
+                    letterMap[letter].push('#card' + i);
+                } else {
+                    letterMap[letter] = ['#card' + i];
+                }
+            }
+        }
+
+        function placeWordHint(word) {
+            for (var i = 0; i < Math.min(word.length, maxWordLength); i ++) {
+                var letter = word[i].toUpperCase();
+                var hint = debugMode ? letter : "";
+                $('<div>' + hint + '</div>').data('letter', word[i]).data('id', i).addClass("slotElement").attr('id', 'slot' + i).appendTo('#cardSlots').droppable({
+                    accept: '#cardPile div',
+                    hoverClass: 'hovered',
+                    drop: handleCardDrop
+                });
+            }
+        }
+
+        function displayCurrentLevel() {
+            $("#currentLevel").html(currentLevel);
+        }
+
+        function placeContent() {
+            enableKeypress = true;
+            currentCharacter = 0;
+            word = getWord(socket).split("");
 //      letters = getLetters(word);
 //      colorWheel = shuffleArray(colorWheel);
 //      letterMap = {};
@@ -266,168 +266,167 @@
 //
 //      highlightCurrent();
 //      displayCurrentLevel();
-    }
-    function setWord(rawWord)
-    {
-      word = rawWord.split("");
-      letters = getLetters(word);
-      colorWheel = shuffleArray(colorWheel);
-      letterMap = {};
+        }
+        function setWord(rawWord) {
+            word = rawWord.split("");
+            letters = getLetters(word);
+            colorWheel = shuffleArray(colorWheel);
+            letterMap = {};
 
-      $('#cardPile').html('');
-      $('#cardSlots').html('');
+            $('#cardPile').html('');
+            $('#cardSlots').html('');
 
-      placeChoices(letters);
-      placeWordHint(word);
+            placeChoices(letters);
+            placeWordHint(word);
 
-      highlightCurrent();
-      displayCurrentLevel();
-    }
-    function init() {
+            highlightCurrent();
+            displayCurrentLevel();
+        }
+        function init() {
 
-      currentLevel = minWordLength;
+            currentLevel = minWordLength;
 
-      placeContent();
+            placeContent();
 
-      queryName(socket);
-      displayTeam(socket);
-      displayTeamMembers(socket);
+            queryName(socket);
+            displayTeam(socket);
+            displayTeamMembers(socket);
 
-      $('#console').val('');
-      printMessage("Welcome to the game, " + name + "!\n");
-    }
-
-    function handleCardDrop(event, ui) {
-      var slotLetter = $(this).data('letter').toUpperCase();
-      var slotId = $(this).data('id');
-      var cardLetter = ui.draggable.data('letter').toUpperCase();
-
-        ui.draggable.draggable('disable');
-        $(this).droppable('disable');
-        ui.draggable.position({of: $(this), my: 'center', at: 'center'});
-        ui.draggable.draggable('option', 'revert', false);
-        ui.draggable.css("background", colorWheel[currentCharacter]);
-    }
-
-    function getTimeBonus() {
-      return addTime * currentLevel;
-    }
-
-    function startTimer(duration, dangerTime, display, event) {
-      display.css("color", "blue");
-      var timer = duration, minutes, seconds;
-      tid = setInterval(function () {
-        if (timeBonus) {
-          var bonus = getTimeBonus();
-          timer += bonus;
-          timeBonus = false;
-          $("#timeBonus").html("(+" + bonus +"s)")
-          $("#timeBonus").show();
-          $("#timeBonus").fadeOut(2000);
+            $('#console').val('');
+            printMessage("Welcome to the game, " + name + "!\n");
         }
 
-        minutes = parseInt(timer / 60, 10);
-        seconds = parseInt(timer % 60, 10);
+        function handleCardDrop(event, ui) {
+            var slotLetter = $(this).data('letter').toUpperCase();
+            var slotId = $(this).data('id');
+            var cardLetter = ui.draggable.data('letter').toUpperCase();
 
-        minutes = minutes < 10 ? "0" + minutes : minutes;
-        seconds = seconds < 10 ? "0" + seconds : seconds;
-
-        display.text(minutes + ":" + seconds);
-
-        if (timer <= dangerTime) {
-          display.css("color", "red");
+            ui.draggable.draggable('disable');
+            $(this).droppable('disable');
+            ui.draggable.position({of: $(this), my: 'center', at: 'center'});
+            ui.draggable.draggable('option', 'revert', false);
+            ui.draggable.css("background", colorWheel[currentCharacter]);
         }
 
-        if (--timer < 0) {
-          printMessage("Time ran out...\n");
-          printHiddenWord();
-          clearInterval(tid);
-          event();
+        function getTimeBonus() {
+            return addTime * currentLevel;
         }
-      }, 1000);
-    }
 
-    function printHiddenWord() {
-      printMessage("The hidden word was: " + word.join('') + "\n");
-    }
+        function startTimer(duration, dangerTime, display, event) {
+            display.css("color", "blue");
+            var timer = duration, minutes, seconds;
+            tid = setInterval(function () {
+                if (timeBonus) {
+                    var bonus = getTimeBonus();
+                    timer += bonus;
+                    timeBonus = false;
+                    $("#timeBonus").html("(+" + bonus + "s)")
+                    $("#timeBonus").show();
+                    $("#timeBonus").fadeOut(2000);
+                }
 
-    function gameOver(fail) {
-      clearInterval(tid);
-      printMessage("GAME OVER!\n");
-      $("#time").html('-');
-      $(".pileElement").draggable('disable');
-    }
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
 
-    function printMessage(message) {
-      var txt = $("textarea#console");
-      txt.val(message + txt.val());
-    }
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
 
-    $(document).ready(function () {
-      $(init);
-      startTimer(startTime, dangerTime, $('#time'), gameOver);
-    });
+                display.text(minutes + ":" + seconds);
 
-  </script>
+                if (timer <= dangerTime) {
+                    display.css("color", "red");
+                }
+
+                if (-- timer < 0) {
+                    printMessage("Time ran out...\n");
+                    printHiddenWord();
+                    clearInterval(tid);
+                    event();
+                }
+            }, 1000);
+        }
+
+        function printHiddenWord() {
+            printMessage("The hidden word was: " + word.join('') + "\n");
+        }
+
+        function gameOver(fail) {
+            clearInterval(tid);
+            printMessage("GAME OVER!\n");
+            $("#time").html('-');
+            $(".pileElement").draggable('disable');
+        }
+
+        function printMessage(message) {
+            var txt = $("textarea#console");
+            txt.val(message + txt.val());
+        }
+
+        $(document).ready(function () {
+            $(init);
+            startTimer(startTime, dangerTime, $('#time'), gameOver);
+        });
+
+    </script>
 
 </head>
 
 <body>
 
 <div id="main">
-  <div id="stats">
-    <div id="score">
-      <h1>Scores</h1>
-      <ul>
-        <li>Current Score: <span id="currentScore">XXXXXX<span></li>
-        <li>To win: <span id="toWin">XXXXXX<span></li>
-        <li>Bonus at: <span id="bonusAt">XXXXXX<span></li>
-      </ul>
-    </div>
-    <div id="team">
-      <h1>Team Info</h1>
-      <ul>
-        <li>Your Team: <span id="yourTeam">XXXXXX<span></li>
-        <li>Team Members:
-          <ul id="teamMembers">
-          </ul>
-        </li>
-      </ul>
-    </div>
-    <div id="records">
-      <h1>Records</h1>
-      <ul>
-        <li>Current Level: <span id="currentLevel">XXXXXX<span></li>
-        <li>Total Score: <span id="totalScore">XXXXXX<span></li>
-        <li>Wins: <span id="wins">XXXXXX<span></li>
-        <li>Losses: <span id="fastestWin">XXXXXX<span></li>
-        <li>Fastest win: <span id="fastestWin">XXXXXX<span></li>
-      </ul>
-    </div>
-    <div id="teamScores">
-      <h1>Team Scores</h1>
-      <table id="teamPoints">
-        <tr>
-          <td class="leftAlignedTable">PLAYER</td>
-          <td class="rightAlignedTable">POINTS</td>
-        </tr>
-      </table>
-    </div>
+    <div id="stats">
+        <div id="score">
+            <h1>Scores</h1>
+            <ul>
+                <li>Current Score: <span id="currentScore">XXXXXX<span></li>
+                <li>To win: <span id="toWin">XXXXXX<span></li>
+                <li>Bonus at: <span id="bonusAt">XXXXXX<span></li>
+            </ul>
+        </div>
+        <div id="team">
+            <h1>Team Info</h1>
+            <ul>
+                <li>Your Team: <span id="yourTeam">XXXXXX<span></li>
+                <li>Team Members:
+                    <ul id="teamMembers">
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        <div id="records">
+            <h1>Records</h1>
+            <ul>
+                <li>Current Level: <span id="currentLevel">XXXXXX<span></li>
+                <li>Total Score: <span id="totalScore">XXXXXX<span></li>
+                <li>Wins: <span id="wins">XXXXXX<span></li>
+                <li>Losses: <span id="fastestWin">XXXXXX<span></li>
+                <li>Fastest win: <span id="fastestWin">XXXXXX<span></li>
+            </ul>
+        </div>
+        <div id="teamScores">
+            <h1>Team Scores</h1>
+            <table id="teamPoints">
+                <tr>
+                    <td class="leftAlignedTable">PLAYER</td>
+                    <td class="rightAlignedTable">POINTS</td>
+                </tr>
+            </table>
+        </div>
 
-  </div>
-  <div id="content">
-
-    <div id="cardSlots"> </div>
-    <div id="cardPile"> </div>
-    <div id="timer">
-      <div>Time remaining: <span id="time">**:**</span><span id="timeBonus"></span></div>
     </div>
-    <div id="messages">
-      <h1>Messages</h1>
-      <textarea id="console" rows="14" cols="90" readonly>XXXXXXXXXXXXXXXXXXXXX</textarea>
-    </div>
+    <div id="content">
 
-  </div>
+        <div id="cardSlots"></div>
+        <div id="cardPile"></div>
+        <div id="timer">
+            <div>Time remaining: <span id="time">**:**</span><span id="timeBonus"></span></div>
+        </div>
+        <div id="messages">
+            <h1>Messages</h1>
+            <textarea id="console" rows="14" cols="90" readonly>XXXXXXXXXXXXXXXXXXXXX</textarea>
+        </div>
+
+    </div>
 </div>
 
 </body>
