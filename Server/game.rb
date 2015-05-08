@@ -77,7 +77,7 @@ class Game
     if processed_command.is_a? LetterInsertCommand
       puts 'Inserting a new letter...'
 
-      command_result = @word_manager.insert_letter processed_command.slot_id, processed_command.card_letter
+      command_result = @word_manager.insert_letter processed_command.card_letter
 
       if (score_dif = command_result.score_dif) != 0
         player = @player_manager.find processed_command.player_id
