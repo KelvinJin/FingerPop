@@ -2,6 +2,8 @@ require "observer"
 require 'singleton'
 
 SERVER_DEFAULT_ADDR = "/tmp/server"
+SERVER_PORT = 9999
+SERVER_TYPE = TCPServer
 MAX_MESSAGE_LENGTH = 512
 
 class MessageHandler
@@ -10,7 +12,7 @@ class MessageHandler
 
   def initialize
     @command_factory = CommandFactory.new
-    @serv = UNIXServer.new SERVER_DEFAULT_ADDR
+    @serv = TCPServer.new SERVER_PORT
 
     @received_message_queue = Queue.new
     @to_send_message_queue = Queue.new
@@ -33,6 +35,8 @@ class MessageHandler
 
     loop do
       new_message = @received_message_queue.pop
+
+      puts new_message
 
       process_message new_message
     end

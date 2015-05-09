@@ -1,10 +1,9 @@
 class LetterInsertCommand < Command
-  attr_accessor :card_letter, :slot_id
+  attr_accessor :card_letter
 
 
-  def initialize session_id = nil, player_id = nil, card_letter = nil, slot_id = nil
+  def initialize session_id = nil, player_id = nil, card_letter = nil
     super(session_id, player_id)
     @card_letter = card_letter
-    @slot_id = slot_id
   end
 end

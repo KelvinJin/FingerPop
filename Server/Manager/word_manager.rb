@@ -18,13 +18,13 @@ class WordManager
     @current_word_list[@current_word_index].unsorted
   end
 
-  def insert_letter slot_id, letter
+  def insert_letter letter
 
-    letter_inserted, complete = @current_word_list[@current_word_index]
-                                    .insert_letter slot_id, letter
+    is_first, slot_ids, complete = @current_word_list[@current_word_index]
+                                    .insert_letter letter
 
-    is_correct = !letter_inserted.nil?
-    is_first = slot_id == 0
+    is_correct = !slot_ids.nil?
+    letter_inserted = is_correct ? letter : nil
     is_last = complete
 
     increase_word_index if complete
@@ -32,7 +32,7 @@ class WordManager
     # Return how many scores this action will gain
     LetterInsertCommandResult.new nil, nil,
                                   score_for_letter(is_correct, is_first, is_last),
-                                  slot_id, letter_inserted, complete,
+                                  slot_ids, letter_inserted, complete,
                                   complete ? current_unsorted_word : nil
   end
 
