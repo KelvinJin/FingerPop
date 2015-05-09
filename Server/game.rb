@@ -10,7 +10,6 @@ class Game
   # for this game instance.
 
 
-
   def initialize session_id
     @session_id = session_id
 

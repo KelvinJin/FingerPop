@@ -24,7 +24,6 @@ class WordManager
                                     .insert_letter letter
 
     is_correct = !slot_ids.nil?
-    letter_inserted = is_correct ? letter : nil
     is_last = complete
 
     increase_word_index if complete
@@ -32,7 +31,7 @@ class WordManager
     # Return how many scores this action will gain
     LetterInsertCommandResult.new nil, nil,
                                   score_for_letter(is_correct, is_first, is_last),
-                                  slot_ids, letter_inserted, complete,
+                                  slot_ids.nil? ? [] : slot_ids, letter, complete,
                                   complete ? current_unsorted_word : nil
   end
 
