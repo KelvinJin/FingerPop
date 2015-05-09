@@ -11,8 +11,8 @@ class PlayerManager < Manager
     @player_list.insort player
   end
 
-  def add_player ip_addr
-    new_player = Player.new next_player_id, ip_addr, next_player_name
+  def add_player player_id
+    new_player = Player.new player_id, next_player_name
     _add_player new_player
     new_player
   end
@@ -47,6 +47,16 @@ class PlayerManager < Manager
 
   def next_player_name
     "Player" + Time.now.to_i.to_s
+  end
+
+  def to_json
+    json = Hash.new
+
+    @player_list.each do |player|
+      json[player.player_id] = player.name
+    end
+
+    json
   end
 
   def to_s

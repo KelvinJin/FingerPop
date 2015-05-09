@@ -56,7 +56,13 @@ listener.on('connection', function (socket) {
   // We need to record the ip address of the Client immediately and compose the start command message to send
   // to the Server.
   var ipInfo = socket.request.connection._peername;
-  var sStartCommand = sessionStartCommand(ipInfo.address + ":" + ipInfo.port);
+
+  // Generate a new uuid for this player.
+  var new_player_id = generateUUID();
+
+  var sStartCommand = sessionStartCommand(new_player_id);
+
+  socket.emit("setPlayerId", new_player_id);
 
   // For individual Client, we listen on certain event.
   socket.on('letterInserting', function (msg) {
@@ -72,7 +78,7 @@ listener.on('connection', function (socket) {
     // Because before the Client receives the start session message, it won't know whether a particular
     // message should be processed or not. Only after start session message which contains the unique player id,
     // can the individual Client know if a message is sent to itself.
-    if (message["@player_name"] != null) {
+    if (message["@player_list"] != null) {
       socket.emit('startSession', msg);
     }
     else {
@@ -85,8 +91,15 @@ listener.on('connection', function (socket) {
 
 });
 
-function sessionStartCommand(ipAddress) {
-  return '{"Type":0,"Content":{"@ip_addr":"' + ipAddress + '"}}';
+function sessionStartCommand(new_player_id) {
+  return '{"Type":0,"Content":{"@player_id":"' + new_player_id + '"}}';
+}
+
+function generateUUID() {
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
 }
 
 /******************** OTHER STUFF I DON'T CARE **************************/

@@ -45,19 +45,20 @@ class Game
       puts 'Adding a new player...'
 
       # Add new player to player pool
-      new_player = @player_manager.add_player processed_command.ip_addr
+      new_player = @player_manager.add_player processed_command.player_id
 
       # Add new player to score board
       @score_board_manager.add_player new_player
 
       need_to_start = @player_manager.player_count >= MAX_PLAYER_NUMBER_PER_GAME
-      new_word = need_to_start ? @word_manager.current_unsorted_word : nil
 
-      command_result = SessionStartCommandResult.new @session_id,
-                                                     new_player.player_id,
-                                                     new_player.name, new_word
+      if need_to_start
+        new_word = @word_manager.current_unsorted_word
 
+        puts "New game is starting...#{ @player_manager.to_json.inspect }"
 
+        command_result = SessionStartCommandResult.new @session_id, @player_manager.to_json, new_word
+      end
 
       puts 'done.'
     end
@@ -96,10 +97,9 @@ class Game
     @state_manager.tick
 
     # puts "CURRENT STATE: #{ @state_manager.to_s }"
+    return if command_result.nil?
 
-    puts command_result.to_json
-
-    MessageHandler.instance.send_result JSON.generate command_result.to_json unless command_result.nil?
+    MessageHandler.instance.send_result JSON.generate command_result.to_json
   end
 
 end

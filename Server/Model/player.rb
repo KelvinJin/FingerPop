@@ -1,9 +1,8 @@
 class Player
-  attr_reader :name, :ip_addr, :player_id, :last_update
+  attr_reader :name, :player_id, :last_update
 
-  def initialize player_id, ip_addr, name
+  def initialize player_id, name
     @player_id = player_id
-    @ip_addr = ip_addr
     @name = name
   end
 
