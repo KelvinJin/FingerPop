@@ -82,6 +82,8 @@ class Game
       if (score_dif = command_result.score_dif) != 0
         player = @player_manager.find processed_command.player_id
 
+        return if player.nil?
+
         @score_board_manager.update_score player, score_dif
       end
 
