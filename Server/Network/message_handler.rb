@@ -12,7 +12,7 @@ class MessageHandler
 
   def initialize
     @command_factory = CommandFactory.new
-    @serv = TCPServer.new SERVER_PORT
+    @serv = UNIXServer.new SERVER_DEFAULT_ADDR
 
     @received_message_queue = Queue.new
     @to_send_message_queue = Queue.new
