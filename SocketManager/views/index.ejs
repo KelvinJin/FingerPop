@@ -95,14 +95,14 @@
 
             // Second check if the the letter is null
             slot_ids = jsonObj['@slot_ids'];
+
             inserted_letter = jsonObj['@letter'];
 
             if (inserted_letter != null) {
                 // Update the letter slot
-                for(var slot_id in slot_ids)
-                {
-                    insertLetter(slot_id, inserted_letter);
-                }
+
+                insertLetter(slot_ids, inserted_letter);
+
 
 
                 // Then check if this is the last move
@@ -172,22 +172,43 @@
             teamScoreList.append('<tr><td class="leftAlignedTable">PLAYER</td><td class="rightAlignedTable">POINTS</td></tr>');
         }
 
-        function insertLetter(slot_id, letter) {
+        function insertLetter(slot_ids, letter) {
             var key = letter.toUpperCase();
-
-            if (key in letterMap) {
+            var initialId = letterMap[key][0].replace("#","");
+            for(var i= 0; i<slot_ids.length;i++)
+            {
                 var cardId = letterMap[key][0];
 
-                var positionSlot = $("#slot" + slot_id).offset();
-                var positionCard = $(cardId).offset();
+               // var positionSlot = $("#slot" + slot_ids[i]).offset();
+               // var positionCard = $(cardId).offset();
 
-                dx = positionSlot.left - positionCard.left;
-                dy = positionSlot.top - positionCard.top;
+                $(cardId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'});
 
-                $(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
+                //dx = positionSlot.left - positionCard.left;
+                //dy = positionSlot.top - positionCard.top;
 
-                insertedLetter(slot_id, letter);
+                //$(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
+
+                if(cardId=='-1')
+                {
+                    var newId = initialId + i;
+
+                    $('<div>' + key + '</div>').data('letter', key).attr('id', newId).addClass("pileElement").appendTo('#cardPile').draggable({
+                        containment: '#content',
+                        stack: '#cardPile div',
+                        cursor: 'move',
+                        revert: true
+                    });
+                    $("#"+newId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'});
+                }
+
+                letterMap[key][0]='-1';
             }
+
+
+
+                //insertedLetter(slot_id, letter);
+
         }
 
         function insertedLetter(slot_id, letter) {
@@ -221,20 +242,18 @@
         }
 
         function placeChoices(letters) {
-            for (var i = 0; i < Math.min(letters.length, maxLetters); i ++) {
-                var letter = letters[i].toUpperCase();
-                $('<div>' + letter + '</div>').data('letter', letters[i]).attr('id', 'card' + i).addClass("pileElement").appendTo('#cardPile').draggable({
+            var letterWheel = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            for (var i = 0; i < Math.min(letterWheel.length, maxLetters); i ++) {
+                var letter = letterWheel[i].toUpperCase();
+                $('<div>' + letter + '</div>').data('letter', letterWheel[i]).attr('id', 'card' + i).addClass("pileElement").appendTo('#cardPile').draggable({
                     containment: '#content',
                     stack: '#cardPile div',
                     cursor: 'move',
                     revert: true
                 });
 
-                if (letter in letterMap) {
-                    letterMap[letter].push('#card' + i);
-                } else {
-                    letterMap[letter] = ['#card' + i];
-                }
+                letterMap[letter] = ['#card' + i];
+
             }
         }
 
