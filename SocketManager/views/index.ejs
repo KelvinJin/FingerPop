@@ -43,7 +43,7 @@
         socket.on('startSession', function (msg) {
             // Get the json object from msg
             jsonObj = JSON.parse(msg);
-            printMessage("Game Start!!!");
+            printMessage("Game Start!!!"+msg);
             my_session_id = jsonObj['@session_id'];
             var players = jsonObj['@player_list'];
             for(var player in players)
@@ -52,6 +52,7 @@
                     my_name = player['@player_name'];
                 addPlayer(player['@player_id'],player['@player_name']);
             }
+            refreshPlayerScoreList();
 //            // Get my information
 //            if (my_session_id == null) {
 //                printMessage("Get session start result");
