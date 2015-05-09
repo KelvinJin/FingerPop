@@ -3,7 +3,6 @@ require 'singleton'
 
 SERVER_DEFAULT_ADDR = "/tmp/server"
 SERVER_PORT = 9999
-SERVER_TYPE = TCPServer
 MAX_MESSAGE_LENGTH = 512
 
 class MessageHandler
