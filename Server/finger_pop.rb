@@ -10,8 +10,10 @@ require 'json'
 require 'socket'
 require 'thread'
 
-MAX_PLAYER_NUMBER_PER_GAME = 3
+MAX_PLAYER_NUMBER_PER_GAME = 2
 ENGLISH_WORD_LIST_FILE = Dir.pwd + '/Resources/en.txt'
+MINIMUM_LENGTH_OF_WORD = 3
+MAXIMUM_LENGTH_OF_WORD = 10
 
 class FingerPop
 
@@ -22,7 +24,7 @@ class FingerPop
     @game_list = []
 
     @message_handler = MessageHandler.instance
-    @word_list_manager = WordListManager.instance.load_word_list ENGLISH_WORD_LIST_FILE
+    @word_list_manager = WordListManager.instance.load_word_list ENGLISH_WORD_LIST_FILE, MINIMUM_LENGTH_OF_WORD, MAXIMUM_LENGTH_OF_WORD
 
     # Add self to message handler to listen for the new session message
     @message_handler.add_observer self

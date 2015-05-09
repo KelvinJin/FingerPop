@@ -4,7 +4,12 @@ class CommandFactory
   COMMAND_CONTENT_KEY = :Content
 
   def make_command message
-    command_json = JSON.parse message, symbolize_names: true
+
+    begin
+      command_json = JSON.parse message, symbolize_names: true
+    rescue
+      return
+    end
 
     puts "Message received : #{ command_json.inspect }"
 

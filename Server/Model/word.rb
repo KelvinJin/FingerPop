@@ -1,4 +1,7 @@
 class Word
+
+  attr_accessor :word
+
   def initialize word
     @word = word
     @letter_map = Hash.new
