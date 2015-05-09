@@ -99,6 +99,8 @@ class Game
     # puts "CURRENT STATE: #{ @state_manager.to_s }"
     return if command_result.nil?
 
+    puts command_result.to_json
+
     MessageHandler.instance.send_result JSON.generate command_result.to_json
   end
 
