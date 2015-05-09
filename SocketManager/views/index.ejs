@@ -44,34 +44,21 @@
             // Get the json object from msg
             jsonObj = JSON.parse(msg);
             printMessage("Game Start!!!"+msg);
-            my_session_id = jsonObj['@session_id'];
             var players = jsonObj['@player_list'];
-            for(var player in players)
+
+            if (my_player_id in players) {
+                my_session_id = jsonObj['@session_id'];
+            } else {
+                return
+            }
+
+            for(var player_id in players)
             {
-                if(player['@player_id'] == my_player_id)
-                    my_name = player['@player_name'];
-                addPlayer(player['@player_id'],player['@player_name']);
+                if(player_id == my_player_id)
+                    my_name = players[player_id];
+                addPlayer(player_id, players[player_id]);
             }
             refreshPlayerScoreList();
-//            // Get my information
-//            if (my_session_id == null) {
-//                printMessage("Get session start result");
-//                my_session_id = jsonObj['@session_id'];
-//                my_player_id = jsonObj['@player_id'];
-//                my_name = jsonObj['@player_name'];
-//                addPlayer(my_player_id, my_name);
-//                refreshPlayerScoreList();
-//            }
-//            // Get team member's information
-//            else {
-//                target_session_id = jsonObj['@session_id'];
-//                if (target_session_id == my_session_id) {
-//                    new_player_id = jsonObj['@player_id'];
-//                    new_player_name = jsonObj['@player_name'];
-//                    addPlayer(new_player_id, new_player_name);
-//                    refreshPlayerScoreList();
-//                }
-//            }
 
             word = jsonObj['@new_unsorted_word'];
 
@@ -110,7 +97,7 @@
 
             inserted_letter = jsonObj['@letter'];
 
-            if (inserted_letter != null) {
+            if (slot_ids.length > 0) {
                 // Update the letter slot
 
                 insertLetter(slot_ids, inserted_letter);
@@ -135,7 +122,9 @@
                     }
                 }
             }
-
+            else{
+                removeCard(inserted_letter);
+            }
             refreshPlayerScoreList();
         });
 
@@ -183,7 +172,12 @@
             teamScoreList.html('');
             teamScoreList.append('<tr><td class="leftAlignedTable">PLAYER</td><td class="rightAlignedTable">POINTS</td></tr>');
         }
-
+        function removeCard(letter){
+            var key = letter.toUpperCase();
+            var cardId = letterMap[key][0];
+            $(cardId).css("opacity", "0.3");
+            letterMap[key][0]=-1;
+        }
         function insertLetter(slot_ids, letter) {
             var key = letter.toUpperCase();
             var initialId = letterMap[key][0].replace("#","");
