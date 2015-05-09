@@ -73,7 +73,7 @@
 
         // Get the letter insert command result from server.
         // Message protocol:
-        // keys: @session_id, @player_id, @score_dif, @slot_if, @letter, @complete, @new_unsorted_word
+        // keys: @session_id, @player_id, @score_dif, @slot_id, @letter, @complete, @new_unsorted_word
         socket.on('letterInserted', function (msg) {
             printMessage("Get new letter insertion" + "   " + msg);
 
@@ -94,12 +94,16 @@
 
 
             // Second check if the the letter is null
-            slot_id = jsonObj['@slot_id'];
+            slot_ids = jsonObj['@slot_ids'];
             inserted_letter = jsonObj['@letter'];
 
             if (inserted_letter != null) {
                 // Update the letter slot
-                insertLetter(slot_id, inserted_letter);
+                for(var slot_id in slot_ids)
+                {
+                    insertLetter(slot_id, inserted_letter);
+                }
+
 
                 // Then check if this is the last move
                 is_complete = jsonObj['@complete'];
@@ -130,7 +134,7 @@
 
             var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
                     ",\"@player_id\":\"" + my_player_id + "\",\"@card_letter\":\"" + keyPressed +
-                    "\",\"@slot_id\":" + currentCharacter + "}}";
+                    "\"}}";
 
             socket.emit('letterInserting', msg);
         });

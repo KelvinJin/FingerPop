@@ -1,8 +1,8 @@
 /***************************** Global Constants ***************************/
 
 // The default unix socket address used to communicate with the Server
-var SERVER_DEFAULT_ADDR = '/tmp/server';
-
+//var SERVER_DEFAULT_ADDR = '/tmp/server';
+var SERVER_DEFAULT_ADDR = '10.9.168.246:9999';
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -41,7 +41,7 @@ var listener = require('socket.io').listen(server);
 /***************************** Server Side Communicator ***************************/
 
 // The default unix socket used to communicate with the Server
-var unix_socket = net.connect({path: SERVER_DEFAULT_ADDR}, function () {
+var unix_socket = net.connect('9999','10.9.168.246', function () {
   console.log('Connected to server!');
 });
 
