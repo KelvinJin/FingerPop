@@ -43,26 +43,34 @@
         socket.on('startSession', function (msg) {
             // Get the json object from msg
             jsonObj = JSON.parse(msg);
-
-            // Get my information
-            if (my_session_id == null) {
-                printMessage("Get session start result");
-                my_session_id = jsonObj['@session_id'];
-                my_player_id = jsonObj['@player_id'];
-                my_name = jsonObj['@player_name'];
-                addPlayer(my_player_id, my_name);
-                refreshPlayerScoreList();
+            printMessage("Game Start!!!");
+            my_session_id = jsonObj['@session_id'];
+            var players = jsonObj['@player_list'];
+            for(var player in players)
+            {
+                if(player['@player_id'] == my_player_id)
+                    my_name = player['@player_name'];
+                addPlayer(player['@player_id'],player['@player_name']);
             }
-            // Get team member's information
-            else {
-                target_session_id = jsonObj['@session_id'];
-                if (target_session_id == my_session_id) {
-                    new_player_id = jsonObj['@player_id'];
-                    new_player_name = jsonObj['@player_name'];
-                    addPlayer(new_player_id, new_player_name);
-                    refreshPlayerScoreList();
-                }
-            }
+//            // Get my information
+//            if (my_session_id == null) {
+//                printMessage("Get session start result");
+//                my_session_id = jsonObj['@session_id'];
+//                my_player_id = jsonObj['@player_id'];
+//                my_name = jsonObj['@player_name'];
+//                addPlayer(my_player_id, my_name);
+//                refreshPlayerScoreList();
+//            }
+//            // Get team member's information
+//            else {
+//                target_session_id = jsonObj['@session_id'];
+//                if (target_session_id == my_session_id) {
+//                    new_player_id = jsonObj['@player_id'];
+//                    new_player_name = jsonObj['@player_name'];
+//                    addPlayer(new_player_id, new_player_name);
+//                    refreshPlayerScoreList();
+//                }
+//            }
 
             word = jsonObj['@new_unsorted_word'];
 
@@ -70,7 +78,10 @@
                 setWord(word);
             }
         });
-
+        socket.on('setPlayerId',function(msg){
+            printMessage("Set Player Id "+" " +msg+"\n");
+            my_player_id = msg;
+        });
         // Get the letter insert command result from server.
         // Message protocol:
         // keys: @session_id, @player_id, @score_dif, @slot_id, @letter, @complete, @new_unsorted_word
