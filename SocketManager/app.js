@@ -54,16 +54,21 @@ unix_socket.setEncoding('utf8');
 // Once we get a connection from Client.
 listener.on('connection', function (socket) {
 
-  // Generate a new uuid for this player.
-  var new_player_id = generateUUID();
-
-  var sStartCommand = sessionStartCommand(new_player_id);
-
-  socket.emit("setPlayerId", new_player_id);
-
   // For individual Client, we listen on certain event.
   socket.on('letterInserting', function (msg) {
     unix_socket.write(msg);
+  });
+
+  socket.on('playerName', function (msg) {
+    // Generate a new uuid for this player.
+    var new_player_id = generateUUID();
+
+    var sStartCommand = sessionStartCommand(new_player_id, msg);
+
+    socket.emit("setPlayerId", new_player_id);
+
+    // We must put this code here after we've listened on the socket.
+    unix_socket.write(sStartCommand);
   });
 
   // Meanwhile, we'd like to subscribe this client to the message from Server.
@@ -88,14 +93,10 @@ listener.on('connection', function (socket) {
       socket.emit('letterInserted', msg);
     }
   });
-
-  // We must put this code here after we've listened on the socket.
-  unix_socket.write(sStartCommand);
-
 });
 
-function sessionStartCommand(new_player_id) {
-  return '{"Type":0,"Content":{"@player_id":"' + new_player_id + '"}}';
+function sessionStartCommand(new_player_id, new_player_name) {
+  return '{"Type":0,"Content":{"@player_id":"' + new_player_id + '","@player_name":"' + new_player_name + '"}}';
 }
 
 function generateUUID() {

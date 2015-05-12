@@ -11,8 +11,8 @@ class PlayerManager < Manager
     @player_list.insort player
   end
 
-  def add_player player_id
-    new_player = Player.new player_id, next_player_name
+  def add_player player_id, player_name
+    new_player = Player.new player_id, player_name
     _add_player new_player
     new_player
   end

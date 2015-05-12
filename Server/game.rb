@@ -44,7 +44,7 @@ class Game
       puts 'Adding a new player...'
 
       # Add new player to player pool
-      new_player = @player_manager.add_player processed_command.player_id
+      new_player = @player_manager.add_player processed_command.player_id, processed_command.player_name
 
       # Add new player to score board
       @score_board_manager.add_player new_player
