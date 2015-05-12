@@ -54,10 +54,6 @@ unix_socket.setEncoding('utf8');
 // Once we get a connection from Client.
 listener.on('connection', function (socket) {
 
-  // We need to record the ip address of the Client immediately and compose the start command message to send
-  // to the Server.
-  var ipInfo = socket.request.connection._peername;
-
   // Generate a new uuid for this player.
   var new_player_id = generateUUID();
 
@@ -73,7 +69,13 @@ listener.on('connection', function (socket) {
   // Meanwhile, we'd like to subscribe this client to the message from Server.
   // This is a broadcast way to return every message from server to client.
   unix_socket.on('data', function (msg) {
-    var message = JSON.parse(msg);
+
+    try {
+      var message = JSON.parse(msg);
+    } catch (e) {
+      console.log(e.message);
+      return
+    }
 
     // However, we don't want one Client to get the start session message of other Clients.
     // Because before the Client receives the start session message, it won't know whether a particular
