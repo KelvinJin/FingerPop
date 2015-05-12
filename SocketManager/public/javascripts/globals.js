@@ -55,12 +55,23 @@ function keyPressToSocket(socket) {
     // insertLetter(currentCharacter, event.charCode);
     var keyPressed = String.fromCharCode(event.charCode).toLowerCase();
 
+    sendKeyPress(keyPressed);
+  });
+
+  currentSocket = socket;
+}
+
+var currentSocket = null;
+
+function sendKeyPress(key) {
+
+  if (currentSocket != null) {
     var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
-      ",\"@player_id\":\"" + my_player_id + "\",\"@card_letter\":\"" + keyPressed +
+      ",\"@player_id\":\"" + my_player_id + "\",\"@card_letter\":\"" + key +
       "\"}}";
 
-    socket.emit('letterInserting', msg);
-  });
+    currentSocket.emit('letterInserting', msg);
+  }
 }
 
 function listenOnSocket(socket) {
@@ -244,12 +255,11 @@ function placeChoices(letters) {
   var letterWheel = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   for (var i = 0; i < Math.min(letterWheel.length, maxLetters); i ++) {
     var letter = letterWheel[i].toUpperCase();
-    $('<div>' + letter + '</div>').data('letter', letterWheel[i]).attr('id', 'card' + i).addClass("pileElement").appendTo('#cardPile').draggable({
-      containment: '#content',
-      stack: '#cardPile div',
-      cursor: 'move',
-      revert: true
-    });
+    $('<div>' + letter + '</div>').data('letter', letterWheel[i]).attr('id', 'card' + i).addClass("pileElement").appendTo('#cardPile');
+
+    $('#card' + i)[0].onclick = function () {
+      sendKeyPress($(this).data('letter'));
+    };
 
     letterMap[letter] = ['#card' + i];
 

@@ -21,7 +21,7 @@ class WordManager
   def insert_letter letter
 
     is_first, slot_ids, complete = @current_word_list[@current_word_index]
-                                    .insert_letter letter
+                                    .insert_letter letter.downcase
 
     is_correct = !slot_ids.nil?
     is_last = complete
