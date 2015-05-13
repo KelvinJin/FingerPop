@@ -11,14 +11,12 @@ require 'socket'
 require 'thread'
 
 MAX_PLAYER_NUMBER_PER_GAME = 3
-ENGLISH_WORD_LIST_FILE = Dir.pwd + '/Resources/en.txt'
+ENGLISH_WORD_LIST_FILE = Dir.pwd + '/Resources/en1.txt'
 MINIMUM_LENGTH_OF_WORD = 3
 MAXIMUM_LENGTH_OF_WORD = 10
+NUMBER_OF_WORKERS = 4
 
 class FingerPop
-
-  @@session_count = 0
-
   #
   def initialize
     @game_list = []
@@ -26,8 +24,13 @@ class FingerPop
     @message_handler = MessageHandler.instance
     @word_list_manager = WordListManager.instance.load_word_list ENGLISH_WORD_LIST_FILE, MINIMUM_LENGTH_OF_WORD, MAXIMUM_LENGTH_OF_WORD
 
-    # Add self to message handler to listen for the new session message
-    @message_handler.add_observer self
+    @worker_list = []
+
+    NUMBER_OF_WORKERS.times do
+      command_factory = CommandFactory.new
+      worker = MessageProcessor.new(@message_handler.received_message_queue, command_factory, @game_list)
+      @worker_list << Thread.new { worker.run }
+    end
   end
 
   # This is the main procedure of the system. It will loop to get new session request.
@@ -36,37 +39,9 @@ class FingerPop
   def run
     # Start the message handler
     @message_handler.start
+
+    @worker_list.each { |t| t.join }
   end
-
-  def update command
-
-    # For session start command, we need to create a new game instance.
-    if command.is_a? SessionStartCommand
-      current_waiting_game = @game_list.last
-      if current_waiting_game.nil? or
-          current_waiting_game.player_count >= MAX_PLAYER_NUMBER_PER_GAME
-        current_waiting_game = Game.new next_session_id
-        @game_list << current_waiting_game
-      end
-
-      current_waiting_game.process_command command
-    else
-      # otherwise, simply find the game instance by the session id.
-      index = @game_list.index { |x| x.session_id == command.session_id }
-
-      # Send the command to the game
-      @game_list[index].process_command command unless index.nil?
-    end
-
-  end
-
-
-  def next_session_id
-    new_id = @@session_count
-    @@session_count = new_id + 1
-    new_id
-  end
-
 end
 
 finger_pop = FingerPop.new

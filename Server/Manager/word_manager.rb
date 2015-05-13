@@ -39,7 +39,7 @@ class WordManager
 
   def increase_word_index
     # Reset the word list when the current list is used out of.
-    if @current_word_index >= @current_word_list.count
+    if @current_word_index >= @current_word_list.count - 1
       prepare_words
       @current_word_index = 0
     else

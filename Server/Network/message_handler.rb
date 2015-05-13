@@ -6,11 +6,11 @@ SERVER_PORT = 9999
 MAX_MESSAGE_LENGTH = 512
 
 class MessageHandler
+  attr_reader :received_message_queue
   include Observable
   include Singleton
 
   def initialize
-    @command_factory = CommandFactory.new
     @serv = UNIXServer.new SERVER_DEFAULT_ADDR
 
     @received_message_queue = Queue.new
@@ -31,34 +31,11 @@ class MessageHandler
         send_message
       end
     }
-
-    loop do
-      new_message = @received_message_queue.pop
-
-      puts new_message
-
-      process_message new_message
-    end
   end
 
   def get_new_socket_manager
     puts 'Waiting for socket manager connection' if (@socket_manager = @serv.accept).nil?
     puts "Socket manager from #{ @socket_manager.peeraddr }"
-  end
-
-  # When we receive the JSON message from external source.
-  def process_message message
-
-    return if message.length == 0
-
-    # Parse the command into an object
-    new_command = @command_factory.make_command message
-
-    unless new_command.nil?
-      changed(true)
-      # Pass the command object to any observer.
-      notify_observers new_command
-    end
   end
 
   def send_result result
