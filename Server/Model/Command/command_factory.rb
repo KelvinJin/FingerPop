@@ -22,6 +22,10 @@ class CommandFactory
         return command_from_json PlayerNameChangeCommand, command_json[COMMAND_CONTENT_KEY]
       when Command::CommandType::LETTER_INSERT
         return command_from_json LetterInsertCommand, command_json[COMMAND_CONTENT_KEY]
+      when Command::CommandType::TOKEN_REQUEST
+        return command_from_json TokenRequestCommand, command_json[COMMAND_CONTENT_KEY]
+      when Command::CommandType::TOKEN_RELEASE
+        return command_from_json TokenReleaseCommand, command_json[COMMAND_CONTENT_KEY]
       else
         nil
     end

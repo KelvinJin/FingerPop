@@ -14,6 +14,10 @@ class Command
     LETTER_INSERT = 3
     LETTER_REMOVE = 4
     LETTER_SWAP   = 5
+
+    ########## Critical Section ###########
+    TOKEN_REQUEST = 99
+    TOKEN_RELEASE = 100
   end
 
   def initialize session_id = nil, player_id = nil
