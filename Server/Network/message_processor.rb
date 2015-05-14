@@ -16,7 +16,7 @@ class MessageProcessor
       # Get the next message from message queue
       message = @message_queue.pop
 
-      puts "I'm processor #{ @processor_id }"
+      puts "I'm processor #{ @processor_id }, and I get #{ message }"
 
       next if message.length == 0
 
@@ -52,9 +52,5 @@ class MessageProcessor
     new_id = @@session_count
     @@session_count = new_id + 1
     new_id
-  end
-
-  def stop
-    @thread.kill
   end
 end

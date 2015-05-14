@@ -11,7 +11,7 @@ class MessageHandler
   include Singleton
 
   def initialize
-    @serv = UNIXServer.new SERVER_DEFAULT_ADDR
+    @serv = TCPServer.new SERVER_PORT
 
     @received_message_queue = Queue.new
     @to_send_message_queue = Queue.new

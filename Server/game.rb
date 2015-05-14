@@ -50,7 +50,7 @@ class Game
       if need_to_start
         puts "New game is starting...#{ @player_manager.to_json.inspect }"
 
-        command_result = SessionStartCommandResult.new @session_id, @player_manager.to_json
+        command_result = SessionStartCommandResult.new @session_id, @player_manager.to_json, 'fuck'
       end
 
       puts 'done.'
@@ -63,7 +63,7 @@ class Game
       # Find the player
       player = @player_manager.find processed_command.player_id
 
-      @token_manager.request player unless player.nil?
+      @token_manager.request(player, processed_command.signature) unless player.nil?
 
       puts 'done.'
     end
@@ -72,7 +72,7 @@ class Game
       puts 'State update message...'
 
       # Check token
-      if @token_manager.verify process_command.token
+      if @token_manager.verify processed_command.token
 
         # Broadcast the update if token is valid.
         command_result = LetterInsertCommandResult.new processed_command.session_id,
@@ -103,10 +103,15 @@ class Game
   end
 
   # Handle notification from token manager about the new token distribution
-  def update player, token
-    MessageHandler.instance.send_result JSON.generate TokenRequestCommandResult.new(@session_id,
-                                                                                    player.player_id,
-                                                                                    token)
+  def update player, signature, token
+    result = TokenRequestCommandResult.new(@session_id,
+                                           player.player_id,
+                                           signature,
+                                           token).to_json
+
+    puts result
+
+    MessageHandler.instance.send_result JSON.generate result
   end
 
 end

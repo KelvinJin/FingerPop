@@ -39,17 +39,15 @@ class TokenManager
     @semaphore = Mutex.new
   end
 
-  def request player
+  def request player, signature
     # If there is no token occupied and no player is waiting, return a new token immediately
     # otherwise, put into the queue
-    @semaphore.synchronize {
       if @current_token.nil?
         changed(true)
-        notify_observers player, next_token
+        notify_observers player, signature, next_token
       else
-        @token_request_queue << player
+        @token_request_queue << [player, signature]
       end
-    }
   end
 
   def verify token
@@ -93,10 +91,10 @@ class TokenManager
 
     # If there's still some one waiting, then we pop it up
     if @token_request_queue.length > 0
-      player = @token_request_queue.pop
+      player, signature = @token_request_queue.pop
 
       changed(true)
-      notify_observers player, next_token
+      notify_observers player, signature, next_token
     else
       # Else we just reset the token
       @current_token = nil

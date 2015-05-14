@@ -1,5 +1,8 @@
 class TokenReleaseCommand < Command
-  def initialize session_id, player_id, token
+
+  attr_accessor :token
+
+  def initialize session_id=nil, player_id=nil, token=nil
     super(session_id, player_id)
     @token = token
   end

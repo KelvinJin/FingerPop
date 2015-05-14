@@ -7,7 +7,8 @@ class CommandFactory
 
     begin
       command_json = JSON.parse message, symbolize_names: true
-    rescue
+    rescue => e
+      puts e.message
       return
     end
 
