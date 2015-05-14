@@ -1,5 +1,6 @@
 class TokenReleaseCommand < Command
-  def initialize session_id, player_id
-     super(session_id, player_id)
+  def initialize session_id, player_id, token
+    super(session_id, player_id)
+    @token = token
   end
 end
