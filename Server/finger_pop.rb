@@ -22,9 +22,6 @@ class FingerPop
     @game_list = []
 
     @message_handler = MessageHandler.instance
-    @word_list_manager = WordListManager.instance.load_word_list ENGLISH_WORD_LIST_FILE, MINIMUM_LENGTH_OF_WORD, MAXIMUM_LENGTH_OF_WORD
-
-    @worker_list = []
 
     NUMBER_OF_WORKERS.times do
       command_factory = CommandFactory.new

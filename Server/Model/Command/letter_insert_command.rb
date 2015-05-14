@@ -1,9 +1,9 @@
 class LetterInsertCommand < Command
-  attr_accessor :card_letter
+  attr_accessor :message, :token
 
-
-  def initialize session_id = nil, player_id = nil, card_letter = nil
+  def initialize session_id = nil, player_id = nil, token=nil, message=nil
     super(session_id, player_id)
-    @card_letter = card_letter
+    @token = token
+    @message = message
   end
 end

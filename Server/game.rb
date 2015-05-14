@@ -20,10 +20,9 @@ class Game
     # After the decision manager filter the commands,
     # other managers should continue to process the command respectively.
     @player_manager = PlayerManager.new
-    @score_board_manager = ScoreBoardManager.new
-    @word_manager = WordManager.new
+    @token_manager = TokenManager.new
 
-    @state_manager = StateManager.new @player_manager, @score_board_manager, @word_manager
+    @token_manager.add_observer self
 
   end
 
@@ -44,56 +43,56 @@ class Game
       puts 'Adding a new player...'
 
       # Add new player to player pool
-      new_player = @player_manager.add_player processed_command.player_id, processed_command.player_name
-
-      # Add new player to score board
-      @score_board_manager.add_player new_player
+      @player_manager.add_player processed_command.player_id, processed_command.player_name
 
       need_to_start = @player_manager.player_count >= MAX_PLAYER_NUMBER_PER_GAME
 
       if need_to_start
-        new_word = @word_manager.current_unsorted_word
-
         puts "New game is starting...#{ @player_manager.to_json.inspect }"
 
-        command_result = SessionStartCommandResult.new @session_id, @player_manager.to_json, new_word
+        command_result = SessionStartCommandResult.new @session_id, @player_manager.to_json
       end
 
       puts 'done.'
     end
 
-    if processed_command.is_a? SessionEndCommand
-      puts 'Removing a player'
+    if processed_command.is_a? TokenRequestCommand
 
-      # Remove the player from player pool
-      deleted_player = @player_manager.remove_player processed_command.player_id
+      puts 'Token request...'
 
-      # Remove the player from score board
-      @score_board_manager.remove_player deleted_player
+      # Find the player
+      player = @player_manager.find processed_command.player_id
+
+      @token_manager.request player unless player.nil?
 
       puts 'done.'
     end
 
     if processed_command.is_a? LetterInsertCommand
-      puts 'Inserting a new letter...'
+      puts 'State update message...'
 
-      command_result = @word_manager.insert_letter processed_command.card_letter
+      # Check token
+      if @token_manager.verify process_command.token
 
-      if (score_dif = command_result.score_dif) != 0
-        player = @player_manager.find processed_command.player_id
+        # Broadcast the update if token is valid.
+        command_result = LetterInsertCommandResult.new processed_command.session_id,
+                                                       processed_command.player_id,
+                                                       processed_command.message
 
-        return if player.nil?
-
-        @score_board_manager.update_score player, score_dif
       end
-
-      command_result.session_id = processed_command.session_id
-      command_result.player_id = processed_command.player_id
 
       puts 'done.'
     end
 
-    @state_manager.tick
+    if processed_command.is_a? TokenReleaseCommand
+
+      puts 'Token release...'
+
+      @token_manager.release processed_command.token
+
+      puts 'done.'
+
+    end
 
     # puts "CURRENT STATE: #{ @state_manager.to_s }"
     return if command_result.nil?
@@ -101,6 +100,13 @@ class Game
     puts command_result.to_json
 
     MessageHandler.instance.send_result JSON.generate command_result.to_json
+  end
+
+  # Handle notification from token manager about the new token distribution
+  def update player, token
+    MessageHandler.instance.send_result JSON.generate TokenRequestCommandResult.new(@session_id,
+                                                                                    player.player_id,
+                                                                                    token)
   end
 
 end
