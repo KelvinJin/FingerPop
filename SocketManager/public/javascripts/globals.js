@@ -351,7 +351,7 @@ function insertLetter(slot_ids, letter) {
     //$(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
 
     if (cardId == '-1') {
-      var newId = initialId + i;
+      var newId = initialId + "#" + i;
 
       $('<div>' + key + '</div>').data('letter', key).attr('id', newId).addClass("pileElement").appendTo('#cardPile').draggable({
         containment: '#content',
