@@ -95,11 +95,13 @@ listener.on('connection', function (socket) {
 
     // Now we can process the message array
     for (var i = 0; i < messages.length; i++) {
+      var msg = messages[i];
+
       try {
-        var message = JSON.parse(messages[i]);
+        var message = JSON.parse(msg);
       } catch (e) {
         console.log(e.message);
-        return
+        continue
       }
 
       // However, we don't want one Client to get the start session message of other Clients.
