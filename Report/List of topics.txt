@@ -1,0 +1,47 @@
+1. Background Survey
+	1a. The problems.
+		a. The Game format 
+		b. concurrency in the Game through multi threading
+		c. Mutual Exclusion in the game
+		d. Deadlocks in the game
+
+	1c. The algorithms we went over
+		a. Mutual Exlcusion
+			1. Token Manager
+			2. Central Server Algorithm
+			3. Few generic algorithms
+			
+		b. Concurrency
+			1. Server lock
+			2. Timeouts (for avoiding deadlocks)
+			3. few other generic algorithms 
+
+2. Comparitive analysis:
+
+	2a. What we were looking for in an algoeithm
+		a. Solve Mutual Exclusion and concurrency efficiently without much overhead
+		
+	2b. Table / Paragraphs of algorithms we chose and how they compare with each other
+		a. Compare the efficiency
+		b. Practicality / ease of use
+		c. Relevence to our problem
+
+	2c. Reasons for choosing this algorithm. 
+
+3. Implementation
+	a. The two prototypes
+	b. Prototype 1:
+		1. Design and Architecture	
+		2. Gameplay
+		3. Sequence of Action
+		4. Drawbacks
+	c. Prototype 2:
+		1. Design and Architecture	
+		2. Gameplay
+		3. Sequence of Action
+		4. Drawbacks
+4. Future Improvements
+	a. In terms of algorithms
+	b. In terms of game play
+	c. Anything else?
+	d. Reflection
