@@ -61,12 +61,6 @@ listener.on('connection', function (socket) {
   socket.on('update', function (msg) {
     unix_socket.write(msg);
   });
-  socket.on('releaseToken', function (msg) {
-    unix_socket.write(msg);
-  });
-  socket.on('requestToken', function (msg) {
-    unix_socket.write(msg);
-  });
 
   socket.on('playerName', function (msg) {
     // Generate a new uuid for this player.
@@ -97,9 +91,6 @@ listener.on('connection', function (socket) {
     // can the individual Client know if a message is sent to itself.
     if (message["@player_list"] != null) {
       socket.emit('startSession', msg);
-    }
-    else if(message["@token"]!=null){
-      socket.emit('getToken',msg);
     }
     else {
       socket.emit('letterInserted', msg);

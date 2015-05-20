@@ -20,9 +20,6 @@ class Game
     # After the decision manager filter the commands,
     # other managers should continue to process the command respectively.
     @player_manager = PlayerManager.new
-    @token_manager = TokenManager.new
-
-    @token_manager.add_observer self
 
   end
 
@@ -56,42 +53,16 @@ class Game
       puts 'done.'
     end
 
-    if processed_command.is_a? TokenRequestCommand
-
-      puts 'Token request...'
-
-      # Find the player
-      player = @player_manager.find processed_command.player_id
-
-      @token_manager.request(player, processed_command.signature) unless player.nil?
-
-      puts 'done.'
-    end
 
     if processed_command.is_a? LetterInsertCommand
       puts 'State update message...'
 
-      # Check token
-      if @token_manager.verify processed_command.token
-
-        # Broadcast the update if token is valid.
-        command_result = LetterInsertCommandResult.new processed_command.session_id,
-                                                       processed_command.player_id,
-                                                       processed_command.message
-
-      end
+      # Broadcast the update
+      command_result = LetterInsertCommandResult.new processed_command.session_id,
+                                                     processed_command.player_id,
+                                                     processed_command.message
 
       puts 'done.'
-    end
-
-    if processed_command.is_a? TokenReleaseCommand
-
-      puts 'Token release...'
-
-      @token_manager.release processed_command.token
-
-      puts 'done.'
-
     end
 
     # puts "CURRENT STATE: #{ @state_manager.to_s }"
@@ -100,18 +71,6 @@ class Game
     puts command_result.to_json
 
     MessageHandler.instance.send_result JSON.generate command_result.to_json
-  end
-
-  # Handle notification from token manager about the new token distribution
-  def update player, signature, token
-    result = TokenRequestCommandResult.new(@session_id,
-                                           player.player_id,
-                                           signature,
-                                           token).to_json
-
-    puts result
-
-    MessageHandler.instance.send_result JSON.generate result
   end
 
 end

@@ -35,9 +35,6 @@ var my_session_id = null;
 var my_player_id = null;
 var my_name = null;
 var player_score_list = {};
-var current_token = null;
-var request_list = new Queue();
-var signature = null;
 
 var PLAYER_NAME_KEY = 'name';
 var PLAYER_SCORE_KEY = 'score';
@@ -69,34 +66,38 @@ function keyPressToSocket(socket) {
 
 var currentSocket = null;
 
-function requestToken(signature)
-{
-  if(currentSocket!=null){
-
-    var msg = "{\"Type\":99,\"Content\":{\"@session_id\":" + my_session_id +
-        ",\"@player_id\":\"" + my_player_id + "\",\"@signature\":\""+signature+"\"}}";
-    currentSocket.emit('requestToken',msg);
-  }
-}
 function onKeyPress(pressedKey){
-  var key = pressedKey.toUpperCase();
-  var key_available = letterAvailable[key];
-  signature = Date.now().toString();
-  var request = "{\"Key\":\""+key+"\",\"Status\":"+key_available+",\"Signature\":\""+signature+"\"}";
-  request_list.enqueue(request);
-  requestToken(signature);
-}
+  var key = pressedKey;
 
-//function sendKeyPress(key) {
-//
-//  if (currentSocket != null) {
-//    var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
-//      ",\"@player_id\":\"" + my_player_id + "\",\"@card_letter\":\"" + key +
-//      "\"}}";
-//
-//    currentSocket.emit('letterInserting', msg);
-//  }
-//}
+  var slot_ids = [];
+  var score_dif = 0;
+  var complete = false;
+  var new_unsorted_word = null;
+  if(wordMap[key]!=null){
+    slot_ids = wordMap[key];
+    score_dif = 15;
+    if(Object.keys(wordMap).length==1)
+    {
+      complete = true;
+      new_unsorted_word = wordList[wordListIndex++];
+    }
+  }
+  if(slot_ids.length == 0)
+    score_dif = -5;
+
+  var letterInsertedMessage = {"@session_id":my_session_id,
+    "@player_id":my_player_id,
+    "@slot_ids":slot_ids,
+    "@score_dif": score_dif,
+    "@letter":key,
+    "@complete":complete,
+    "@new_unsorted_word":new_unsorted_word};
+
+  var message = "{\"Type\":3,\"Content\":{\"@session_id\":"+my_session_id+
+    ",\"@player_id\":\""+my_player_id+
+    "\",\"@message\":"+JSON.stringify(letterInsertedMessage)+"}}";
+  currentSocket.emit('update',message);
+}
 
 function listenOnSocket(socket) {
   // Get the start session response from server.
@@ -127,78 +128,6 @@ function listenOnSocket(socket) {
     if (word != null) {
       setWord(word);
     }
-  });
-
-  socket.on('getToken',function(msg){
-    msgObj = JSON.parse(msg);
-    if(msgObj['@player_id']!=my_player_id)
-    {
-      return;
-    }
-    current_token = msgObj['@token'];
-    var request = null;
-
-    while(!request_list.isEmpty()) {
-      request = request_list.dequeue();
-      requestObj = JSON.parse(request);
-      if (requestObj['Signature']==msgObj["@signature"])
-        break;
-    }
-    if(request != null){
-      requestObj = JSON.parse(request);
-      var key = requestObj['Key'];
-      var status = requestObj['Status'];
-      if(status == true)
-      {
-        var slot_ids = [];
-        var score_dif = 0;
-        var complete = false;
-        var new_unsorted_word = null;
-        if(wordMap[key]!=null){
-          slot_ids = wordMap[key];
-          score_dif = 15;
-          if(Object.keys(wordMap).length==1)
-          {
-            complete = true;
-            new_unsorted_word = wordList[wordListIndex++];
-          }
-        }
-        if(slot_ids.length == 0)
-          score_dif = -5;
-
-        var letterInsertedMessage = {"@session_id":my_session_id,
-          "@player_id":my_player_id,
-          "@token":current_token,
-          "@slot_ids":slot_ids,
-          "@score_dif": score_dif,
-          "@letter":key,
-          "@complete":complete,
-          "@new_unsorted_word":new_unsorted_word};
-
-
-
-        //var letterInsertedMessage = "{\"@session_id\":"+my_session_id+
-        //                            ",\"@player_id\":\""+my_player_id+
-        //                            "\",\"@token\":\""+current_token+
-        //                            "\",\"@score_dif\":"+score_dif+
-        //                            ",\"@slot_ids\":"+JSON.stringify(slot_ids)+
-        //                            ",\"@letter\":\""+key+
-        //                            "\",\"@complete\":"+complete+
-        //                            ",\"@new_unsorted_word\":"+new_unsorted_word+ "}";
-
-        var messageWithToken = "{\"Type\":3,\"Content\":{\"@token\":\""+current_token+
-            "\",\"@session_id\":"+my_session_id+
-            ",\"@player_id\":\""+my_player_id+
-            "\",\"@message\":"+JSON.stringify(letterInsertedMessage)+"}}";
-        currentSocket.emit('update',messageWithToken);
-      }
-    }
-
-    var tokenReleaseMessage ="{\"Type\":100,\"Content\":{\"@token\":\""+current_token+
-      "\",\"@session_id\":"+my_session_id+
-      ",\"@player_id\":\""+my_player_id+"\"}}";
-    currentSocket.emit('releaseToken',tokenReleaseMessage);
-
   });
 
   socket.on('setPlayerId', function (msg) {
@@ -393,10 +322,10 @@ function setWord(rawWord) {
 
   for(var i = 0;i<letters.length;i++)
   {
-    if(wordMap[letters[i].toUpperCase()]==null){
-      wordMap[letters[i].toUpperCase()]=[];
+    if(wordMap[letters[i]]==null){
+      wordMap[letters[i]]=[];
     }
-    wordMap[letters[i].toUpperCase()].push(i);
+    wordMap[letters[i]].push(i);
   }
 
 
