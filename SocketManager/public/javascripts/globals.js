@@ -192,12 +192,13 @@ function listenOnSocket(socket) {
             "\",\"@message\":"+JSON.stringify(letterInsertedMessage)+"}}";
         currentSocket.emit('update',messageWithToken);
       }
-
-      var tokenReleaseMessage ="{\"Type\":100,\"Content\":{\"@token\":\""+current_token+
-          "\",\"@session_id\":"+my_session_id+
-          ",\"@player_id\":\""+my_player_id+"\"}}";
-      currentSocket.emit('releaseToken',tokenReleaseMessage);
     }
+
+    var tokenReleaseMessage ="{\"Type\":100,\"Content\":{\"@token\":\""+current_token+
+      "\",\"@session_id\":"+my_session_id+
+      ",\"@player_id\":\""+my_player_id+"\"}}";
+    currentSocket.emit('releaseToken',tokenReleaseMessage);
+
   });
 
   socket.on('setPlayerId', function (msg) {
@@ -356,7 +357,7 @@ function placeChoices(letters) {
     $('<div>' + letter + '</div>').data('letter', letterWheel[i]).attr('id', 'card' + i).addClass("pileElement").appendTo('#cardPile');
 
     $('#card' + i)[0].onclick = function () {
-      sendKeyPress($(this).data('letter'));
+      onKeyPress($(this).data('letter'));
     };
 
     letterMap[letter] = ['#card' + i];

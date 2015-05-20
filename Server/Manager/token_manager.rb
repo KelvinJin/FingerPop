@@ -42,12 +42,14 @@ class TokenManager
   def request player, signature
     # If there is no token occupied and no player is waiting, return a new token immediately
     # otherwise, put into the queue
+    @semaphore.synchronize {
       if @current_token.nil?
         changed(true)
         notify_observers player, signature, next_token
       else
         @token_request_queue << [player, signature]
       end
+    }
   end
 
   def verify token

@@ -20,19 +20,19 @@ class FingerPop
   #
   def initialize
     @game_list = []
-    # @worker_list = []
+    @worker_list = []
 
     @message_handler = MessageHandler.instance
 
     @command_factory = CommandFactory.new
 
-    # NUMBER_OF_WORKERS.times do
-    #   command_factory = CommandFactory.new
-    #   worker = MessageProcessor.new(@message_handler.received_message_queue, command_factory, @game_list)
-    #   @worker_list << Thread.new { worker.run }
-    # end
+    NUMBER_OF_WORKERS.times do
+      command_factory = CommandFactory.new
+      worker = MessageProcessor.new(@message_handler.received_message_queue, command_factory, @game_list)
+      @worker_list << Thread.new { worker.run }
+    end
 
-    @processor = MessageProcessor.new(@message_handler.received_message_queue, @command_factory, @game_list)
+    # @processor = MessageProcessor.new(@message_handler.received_message_queue, @command_factory, @game_list)
 
   end
 
@@ -43,7 +43,8 @@ class FingerPop
     # Start the message handler
     @message_handler.start
 
-    @processor.run
+    @worker_list.each { |w| w.join }
+    # @processor.run
   end
 end
 
