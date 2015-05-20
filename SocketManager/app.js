@@ -94,9 +94,9 @@ listener.on('connection', function (socket) {
     });
 
     // Now we can process the message array
-    messages.each(function (index, msg) {
+    for (var i = 0; i < messages.length; i++) {
       try {
-        var message = JSON.parse(msg);
+        var message = JSON.parse(messages[i]);
       } catch (e) {
         console.log(e.message);
         return
@@ -115,7 +115,7 @@ listener.on('connection', function (socket) {
       else {
         socket.emit('letterInserted', msg);
       }
-    });
+    }
   });
 });
 
