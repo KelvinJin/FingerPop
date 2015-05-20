@@ -4,6 +4,7 @@ require 'singleton'
 SERVER_DEFAULT_ADDR = "/tmp/server"
 SERVER_PORT = 9999
 MAX_MESSAGE_LENGTH = 512
+JSON_SEPARATOR = '*'
 
 class MessageHandler
   attr_reader :received_message_queue
@@ -48,7 +49,7 @@ class MessageHandler
     begin
       new_result = @to_send_message_queue.pop
 
-      @socket_manager.sendmsg_nonblock new_result, 0
+      @socket_manager.sendmsg_nonblock new_result + JSON_SEPARATOR, 0
     rescue
       @socket_manager.close unless @socket_manager.nil? or @socket_manager.closed?
     end
@@ -62,10 +63,14 @@ class MessageHandler
 
   def receive_message
     begin
-      new_message = @socket_manager.recv MAX_MESSAGE_LENGTH
+      new_messages = @socket_manager.recv MAX_MESSAGE_LENGTH
 
-      # Keep receiving message from the socket.
-      @received_message_queue << new_message
+      # We need to process the new messages based on our json separator since we might receive multiple json object
+      # at once
+      messages = new_messages.split JSON_SEPARATOR
+
+      # Get rid of empty strings
+      messages.each { |new_message| @received_message_queue << new_message unless new_message.empty? }
 
     rescue
       # Close the socket manager if anything bad happen
