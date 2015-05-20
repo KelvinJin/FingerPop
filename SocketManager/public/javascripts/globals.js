@@ -14,14 +14,11 @@ var maxNameLength = 8;
 // Word to guess
 var word;
 var wordMap={};
-var maxWordLength = 10;
-var minWordLength = 3;
+var wordInterval = 1500;
 var alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
 var maxLetters = 30;
 
-var currentCharacter = 0;
 var currentLevel = minWordLength;
-var timeBonus = false;
 
 var colorWheel = ["red", "green", "brown", "yellow", "orange", "cyan",
   "blue", "indigo", "purple", "violet"];
@@ -243,18 +240,43 @@ function listenOnSocket(socket) {
       is_complete = jsonObj['@complete'];
 
       if (is_complete != null && is_complete) {
-        // Then we check the new word
-        new_word = jsonObj['@new_unsorted_word'];
 
-        printMessage(new_word);
+        // Highlight the letters.
+        highlightSlots();
 
-        if (new_word != null) {
-          printMessage("Get new word");
+        toastr.options = {
+          "closeButton": false,
+          "debug": false,
+          "newestOnTop": false,
+          "progressBar": false,
+          "positionClass": "toast-top-right",
+          "preventDuplicates": false,
+          "onclick": null,
+          "showDuration": "100",
+          "hideDuration": "100",
+          "timeOut": wordInterval,
+          "extendedTimeOut": "0",
+          "showEasing": "swing",
+          "hideEasing": "linear",
+          "showMethod": "fadeIn",
+          "hideMethod": "fadeOut"
+        };
 
-          setWord(new_word);
-          timeBonus = true;
-          placeContent();
-        }
+        toastr.success('Awesome! Be ready for the next!');
+
+        // We freeze for a while to let people know the word.
+        setTimeout(function () {
+          // Then we check the new word
+          new_word = jsonObj['@new_unsorted_word'];
+
+          printMessage(new_word);
+
+          if (new_word != null) {
+            printMessage("Get new word");
+
+            setWord(new_word);
+          }
+        }, wordInterval);
       }
     }
     else {
@@ -262,6 +284,12 @@ function listenOnSocket(socket) {
     }
     refreshPlayerScoreList();
   });
+}
+
+function highlightSlots() {
+  $('.slotElement').each(function (index, element) {
+    element.style.backgroundColor = "#2ecc71";
+  })
 }
 
 function addPlayer(player_id, player_name) {
@@ -295,13 +323,15 @@ function clearTeamPoints() {
   teamScoreList.html('');
   teamScoreList.append('<tr><td class="leftAlignedTable">PLAYER</td><td class="rightAlignedTable">POINTS</td></tr>');
 }
+
 function removeCard(letter) {
   var key = letter.toUpperCase();
   var cardId = letterMap[key][0];
   $(cardId).css("opacity", "0.3");
-  letterMap[key][0] = - 1;
+  letterMap[key][0] = -1;
   letterAvailable[key] = false;
 }
+
 function insertLetter(slot_ids, letter) {
   var key = letter.toUpperCase();
   letterAvailable[key] = false;
@@ -313,7 +343,7 @@ function insertLetter(slot_ids, letter) {
     // var positionSlot = $("#slot" + slot_ids[i]).offset();
     // var positionCard = $(cardId).offset();
 
-    $(cardId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'});
+    $(cardId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'}).addClass('slotElement');
 
     //dx = positionSlot.left - positionCard.left;
     //dy = positionSlot.top - positionCard.top;
@@ -329,7 +359,7 @@ function insertLetter(slot_ids, letter) {
         cursor: 'move',
         revert: true
       });
-      $("#" + newId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'});
+      $("#" + newId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'}).addClass('slotElement');
     }
 
     letterMap[key][0] = '-1';
@@ -341,13 +371,6 @@ function insertLetter(slot_ids, letter) {
 
 function getLetters(word) {
   return word.slice();
-}
-
-function highlightCurrent() {
-  $("#slot" + currentCharacter).css('border-color', 'red');
-  if (currentCharacter > 0) {
-    $("#slot" + (currentCharacter - 1)).css('border-color', 'black');
-  }
 }
 
 function placeChoices(letters) {
@@ -366,27 +389,6 @@ function placeChoices(letters) {
   }
 }
 
-function placeWordHint(word) {
-  for (var i = 0; i < Math.min(word.length, maxWordLength); i ++) {
-    var letter = word[i].toUpperCase();
-    var hint = debugMode ? letter : "";
-    $('<div>' + hint + '</div>').data('letter', word[i]).data('id', i).addClass("slotElement").attr('id', 'slot' + i).appendTo('#cardSlots').droppable({
-      accept: '#cardPile div',
-      hoverClass: 'hovered',
-      drop: handleCardDrop
-    });
-  }
-}
-
-function displayCurrentLevel() {
-  $("#currentLevel").html(currentLevel);
-}
-
-function placeContent() {
-  enableKeypress = true;
-  currentCharacter = 0;
-
-}
 function setWord(rawWord) {
   word = rawWord.split("");
   letters = getLetters(word);
@@ -406,17 +408,13 @@ function setWord(rawWord) {
   $('#cardPile').html('');
   $('#cardSlots').html('');
 
-  placeChoices(letters);
   placeWordHint(word);
 
-  highlightCurrent();
-  displayCurrentLevel();
+  placeChoices(letters);
 }
 function init() {
 
   currentLevel = minWordLength;
-
-  placeContent();
 
   $('#console').val('');
   printMessage("Welcome to the game, " + name + "!\n");
@@ -441,26 +439,18 @@ function init() {
   };
 }
 
-function dismissPlayerNameDialog() {
-  $('.overlay').each(function (index, element) {
-    element.style.display = 'none';
-  });
-
-  $('.modal').each(function (index, element) {
-    element.style.display = 'none';
-  });
+function placeWordHint(word) {
+  for (var i = 0; i < Math.min(word.length, maxWordLength); i ++) {
+    var letter = word[i].toUpperCase();
+    var hint = debugMode ? letter : "";
+    $('<div>' + hint + '</div>').data('letter', word[i]).data('id', i).addClass("slotElement").attr('id', 'slot' + i).appendTo('#cardSlots');
+  }
 }
 
-function handleCardDrop(event, ui) {
-  var slotLetter = $(this).data('letter').toUpperCase();
-  var slotId = $(this).data('id');
-  var cardLetter = ui.draggable.data('letter').toUpperCase();
+function dismissPlayerNameDialog() {
+  $('#globalOverlay').fadeOut(100);
 
-  ui.draggable.draggable('disable');
-  $(this).droppable('disable');
-  ui.draggable.position({of: $(this), my: 'center', at: 'center'});
-  ui.draggable.draggable('option', 'revert', false);
-  ui.draggable.css("background", colorWheel[currentCharacter]);
+  $('#playerNameDialog').fadeOut(100);
 }
 
 function printMessage(message) {
