@@ -3,7 +3,7 @@ require 'singleton'
 
 SERVER_DEFAULT_ADDR = "/tmp/server"
 SERVER_PORT = 9999
-MAX_MESSAGE_LENGTH = 512
+MAX_MESSAGE_LENGTH = 2048
 JSON_SEPARATOR = '*'
 
 class MessageHandler
@@ -63,7 +63,11 @@ class MessageHandler
 
   def receive_message
     begin
+
       new_messages = @socket_manager.recv MAX_MESSAGE_LENGTH
+      while new_messages[-1] != JSON_SEPARATOR
+        new_messages << @socket_manager.recv(MAX_MESSAGE_LENGTH)
+      end
 
       # We need to process the new messages based on our json separator since we might receive multiple json object
       # at once
