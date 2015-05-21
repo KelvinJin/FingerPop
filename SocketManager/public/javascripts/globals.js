@@ -13,17 +13,12 @@ var maxNameLength = 8;
 
 // Word to guess
 var word;
+var wordInterval = 1500;
 var maxWordLength = 10;
+var keyboard_enabled = false;
 var minWordLength = 3;
 var alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
 var maxLetters = 30;
-
-var currentCharacter = 0;
-var currentLevel = minWordLength;
-var timeBonus = false;
-
-var colorWheel = ["red", "green", "brown", "yellow", "orange", "cyan",
-  "blue", "indigo", "purple", "violet"];
 
 var letterMap = {};
 
@@ -64,6 +59,8 @@ function keyPressToSocket(socket) {
 var currentSocket = null;
 
 function sendKeyPress(key) {
+
+  if (!keyboard_enabled) { return; }
 
   if (currentSocket != null) {
     var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
@@ -116,16 +113,16 @@ function listenOnSocket(socket) {
   socket.on('letterInserted', function (msg) {
     printMessage("Get new letter insertion" + "   " + msg);
 
-    jsonObj = JSON.parse(msg);
+    var jsonObj = JSON.parse(msg);
 
     // First check the session id
-    session_id = jsonObj['@session_id'];
-    player_id = jsonObj['@player_id'];
+    var session_id = jsonObj['@session_id'];
+    var player_id = jsonObj['@player_id'];
 
     if (session_id != my_session_id) return;
 
     // Then check the score change
-    score_dif = jsonObj['@score_dif'];
+    var score_dif = jsonObj['@score_dif'];
 
     if (score_dif != null) {
       player_score_list[player_id][PLAYER_SCORE_KEY] += score_dif
@@ -133,9 +130,9 @@ function listenOnSocket(socket) {
 
 
     // Second check if the the letter is null
-    slot_ids = jsonObj['@slot_ids'];
+    var slot_ids = jsonObj['@slot_ids'];
 
-    inserted_letter = jsonObj['@letter'];
+    var inserted_letter = jsonObj['@letter'];
 
     if (slot_ids.length > 0) {
       // Update the letter slot
@@ -144,21 +141,48 @@ function listenOnSocket(socket) {
 
 
       // Then check if this is the last move
-      is_complete = jsonObj['@complete'];
+      var is_complete = jsonObj['@complete'];
 
       if (is_complete != null && is_complete) {
-        // Then we check the new word
-        new_word = jsonObj['@new_unsorted_word'];
 
-        printMessage(new_word);
+        // Highlight the letters.
+        highlightSlots();
 
-        if (new_word != null) {
-          printMessage("Get new word");
+        keyboard_enabled = false;
 
-          setWord(new_word);
-          timeBonus = true;
-          placeContent();
-        }
+        toastr.options = {
+          "closeButton": false,
+          "debug": false,
+          "newestOnTop": false,
+          "progressBar": false,
+          "positionClass": "toast-top-right",
+          "preventDuplicates": false,
+          "onclick": null,
+          "showDuration": "100",
+          "hideDuration": "100",
+          "timeOut": wordInterval,
+          "extendedTimeOut": "0",
+          "showEasing": "swing",
+          "hideEasing": "linear",
+          "showMethod": "fadeIn",
+          "hideMethod": "fadeOut"
+        };
+
+        toastr.success('Awesome! Be ready for the next!');
+
+        // We freeze for a while to let people know the word.
+        setTimeout(function () {
+          // Then we check the new word
+          var new_word = jsonObj['@new_unsorted_word'];
+
+          printMessage(new_word);
+
+          if (new_word != null) {
+            printMessage("Get new word");
+            setWord(new_word);
+
+          }
+        }, wordInterval);
       }
     }
     else {
@@ -214,7 +238,7 @@ function insertLetter(slot_ids, letter) {
     // var positionSlot = $("#slot" + slot_ids[i]).offset();
     // var positionCard = $(cardId).offset();
 
-    $(cardId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'});
+    $(cardId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'}).addClass('slotElement');
 
     //dx = positionSlot.left - positionCard.left;
     //dy = positionSlot.top - positionCard.top;
@@ -222,15 +246,10 @@ function insertLetter(slot_ids, letter) {
     //$(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
 
     if (cardId == '-1') {
-      var newId = initialId + i;
+      var newId = initialId + "_" + i;
 
-      $('<div>' + key + '</div>').data('letter', key).attr('id', newId).addClass("pileElement").appendTo('#cardPile').draggable({
-        containment: '#content',
-        stack: '#cardPile div',
-        cursor: 'move',
-        revert: true
-      });
-      $("#" + newId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'});
+      $('<div>' + key + '</div>').data('letter', key).attr('id', newId).addClass("pileElement").appendTo('#cardPile');
+      $("#" + newId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'}).addClass('slotElement');
     }
 
     letterMap[key][0] = '-1';
@@ -240,18 +259,7 @@ function insertLetter(slot_ids, letter) {
 //------------socket.listener
 
 
-function getLetters(word) {
-  return word.slice();
-}
-
-function highlightCurrent() {
-  $("#slot" + currentCharacter).css('border-color', 'red');
-  if (currentCharacter > 0) {
-    $("#slot" + (currentCharacter - 1)).css('border-color', 'black');
-  }
-}
-
-function placeChoices(letters) {
+function placeChoices() {
   var letterWheel = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   for (var i = 0; i < Math.min(letterWheel.length, maxLetters); i ++) {
     var letter = letterWheel[i].toUpperCase();
@@ -270,43 +278,25 @@ function placeWordHint(word) {
   for (var i = 0; i < Math.min(word.length, maxWordLength); i ++) {
     var letter = word[i].toUpperCase();
     var hint = debugMode ? letter : "";
-    $('<div>' + hint + '</div>').data('letter', word[i]).data('id', i).addClass("slotElement").attr('id', 'slot' + i).appendTo('#cardSlots').droppable({
-      accept: '#cardPile div',
-      hoverClass: 'hovered',
-      drop: handleCardDrop
-    });
+    $('<div>' + hint + '</div>').data('letter', word[i]).data('id', i).addClass("slotElement").attr('id', 'slot' + i).appendTo('#cardSlots');
   }
 }
 
-function displayCurrentLevel() {
-  $("#currentLevel").html(currentLevel);
-}
 
-function placeContent() {
-  enableKeypress = true;
-  currentCharacter = 0;
-
-}
 function setWord(rawWord) {
   word = rawWord.split("");
-  letters = getLetters(word);
-  colorWheel = shuffleArray(colorWheel);
   letterMap = {};
 
   $('#cardPile').html('');
   $('#cardSlots').html('');
 
-  placeChoices(letters);
+  placeChoices();
   placeWordHint(word);
 
-  highlightCurrent();
-  displayCurrentLevel();
+  keyboard_enabled = true;
 }
 function init() {
 
-  currentLevel = minWordLength;
-
-  placeContent();
 
   $('#console').val('');
   printMessage("Welcome to the game, " + name + "!\n");
@@ -331,6 +321,12 @@ function init() {
   };
 }
 
+function highlightSlots() {
+  $('.slotElement').each(function (index, element) {
+    element.style.backgroundColor = "#2ecc71";
+  })
+}
+
 function dismissPlayerNameDialog() {
   $('.overlay').each(function (index, element) {
     element.style.display = 'none';
@@ -339,18 +335,6 @@ function dismissPlayerNameDialog() {
   $('.modal').each(function (index, element) {
     element.style.display = 'none';
   });
-}
-
-function handleCardDrop(event, ui) {
-  var slotLetter = $(this).data('letter').toUpperCase();
-  var slotId = $(this).data('id');
-  var cardLetter = ui.draggable.data('letter').toUpperCase();
-
-  ui.draggable.draggable('disable');
-  $(this).droppable('disable');
-  ui.draggable.position({of: $(this), my: 'center', at: 'center'});
-  ui.draggable.draggable('option', 'revert', false);
-  ui.draggable.css("background", colorWheel[currentCharacter]);
 }
 
 function printMessage(message) {
