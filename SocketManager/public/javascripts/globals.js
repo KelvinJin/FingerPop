@@ -152,7 +152,7 @@ function listenOnSocket(socket) {
       if (requestObj['Signature']==msgObj["@signature"])
         break;
     }
-    if(request != null){
+    if(request != null && keyboard_enabled == true){
       requestObj = JSON.parse(request);
       var key = requestObj['Key'];
       var status = requestObj['Status'];
