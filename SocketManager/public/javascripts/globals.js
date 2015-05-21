@@ -60,7 +60,7 @@ var currentSocket = null;
 
 function sendKeyPress(key) {
 
-  if (!keyboard_enabled) { return; }
+  if (!keyboard_enabled || key.toUpperCase() < 'A' || key.toUpperCase() > 'Z') { return; }
 
   if (currentSocket != null) {
     var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
@@ -133,6 +133,8 @@ function listenOnSocket(socket) {
     var slot_ids = jsonObj['@slot_ids'];
 
     var inserted_letter = jsonObj['@letter'];
+
+    if (inserted_letter.toUpperCase() < 'A' || inserted_letter.toUpperCase() > 'Z') { return; }
 
     if (slot_ids.length > 0) {
       // Update the letter slot
