@@ -196,14 +196,14 @@ function listenOnSocket(socket) {
         // We freeze for a while to let people know the word.
         setTimeout(function () {
           // Then we check the new word
-          new_word = jsonObj['@new_unsorted_word'];
+          var new_word = jsonObj['@new_unsorted_word'];
 
           printMessage(new_word);
 
           if (new_word != null) {
             printMessage("Get new word");
-
             setWord(new_word);
+
           }
         }, wordInterval);
       }
@@ -280,7 +280,7 @@ function insertLetter(slot_ids, letter) {
     //$(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
 
     if (cardId == '-1') {
-      var newId = initialId + i;
+      var newId = initialId + "_" + i;
 
       $('<div>' + key + '</div>').data('letter', key).attr('id', newId).addClass("pileElement").appendTo('#cardPile').draggable({
         containment: '#content',
