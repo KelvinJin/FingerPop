@@ -36,37 +36,31 @@ class TokenManager
   def initialize
     @current_token = nil
     @token_request_queue = Queue.new
-    @semaphore = Mutex.new
+    # @semaphore = Mutex.new
   end
 
   def request player, signature
     # If there is no token occupied and no player is waiting, return a new token immediately
     # otherwise, put into the queue
-    @semaphore.synchronize {
-      if @current_token.nil?
-        changed(true)
-        notify_observers player, signature, next_token
-      else
-        @token_request_queue << [player, signature]
-      end
-    }
+    if @current_token.nil?
+      changed(true)
+      notify_observers player, signature, next_token
+    else
+      @token_request_queue << [player, signature]
+    end
   end
 
   def verify token
     # Verify if the token is valid.
     # If it's valid, then return true and move to the next player in the queue
     # otherwise, return false
-    @semaphore.synchronize {
-      return (!@current_token.nil? and token == @current_token)
-    }
+    return (!@current_token.nil? and token == @current_token)
   end
 
   def release token
-    @semaphore.synchronize {
-      if @current_token == token
-        move_to_next
-      end
-    }
+    if @current_token == token
+      move_to_next
+    end
   end
 
   def reset
@@ -81,11 +75,9 @@ class TokenManager
       # Time out if the token expires.
       sleep TOKEN_TIMEOUT
 
-      @semaphore.synchronize {
-        if @current_token == token
-          move_to_next
-        end
-      }
+      if @current_token == token
+        move_to_next
+      end
     }
   end
 
