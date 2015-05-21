@@ -51,7 +51,7 @@ class MessageProcessor
   def next_session_id
     new_id = @@session_count
     @@session_count = new_id + 1
-    new_id
+    Time.now.to_i.to_s + new_id
   end
 
   def stop
