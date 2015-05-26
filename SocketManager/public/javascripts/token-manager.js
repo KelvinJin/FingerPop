@@ -46,21 +46,24 @@ var connectToPeers = function(peerIds, previousPeerId, nextPeerId, letterInserte
   // For previous peer, we need to listen on the token release message.
   // Let's assume we'll process all the letters in the queue.
   var previousPeerConnection = peerConnections[previousPeerId];
-  var nextPeerConnection = peerConnections[nextPeerId];
 
   previousPeerConnection.on('data', function () {
     var message = JSON.parse(msg);
 
     if (message['Type'] == TOKEN_RELEASE_MESSAGE) {
       tokenReceivedCallback(function () {
-
-        var tokenReleaseMessage ="{\"Type\":100,\"Content\":{\"@session_id\":"+my_session_id+
-          ",\"@player_id\":\""+my_player_id+"\"}}";
-
-        // For the next peer, we need to give it our token once we've done with it.
-        nextPeerConnection.send(tokenReleaseMessage);
-
+        sendTokenToPeer(nextPeerId);
       });
     }
   });
+};
+
+var sendTokenToPeer = function (peerId) {
+  var nextPeerConnection = peerConnections[peerId];
+
+  var tokenReleaseMessage ="{\"Type\":100,\"Content\":{\"@session_id\":"+my_session_id+
+    ",\"@player_id\":\""+my_player_id+"\"}}";
+
+  // For the next peer, we need to give it our token once we've done with it.
+  nextPeerConnection.send(tokenReleaseMessage);
 };

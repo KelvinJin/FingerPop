@@ -89,7 +89,7 @@ function listenOnSocket(socket) {
 
     var peerIds = jsonObj['@player_list'];
 
-    if (myPeerId in peerIds) {
+    if (peerIds.indexOf(myPeerId) > -1) {
       my_session_id = jsonObj['@session_id'];
     } else {
       return
@@ -117,6 +117,12 @@ function listenOnSocket(socket) {
     }
 
     connectToPeers(peerIds, previousId, nextId, letterInsertedMessageProcessor, tokenReceivedMessageProcessor);
+
+
+    // If I'm the first one then I should start the token.
+    if (nextId == 1) {
+      sendTokenToPeer(nextId);
+    }
   });
 }
 
@@ -403,8 +409,6 @@ function init() {
 
     // Start the socket
     listenOnSocket(socket);
-
-    keyPressToSocket(socket);
   };
 }
 
