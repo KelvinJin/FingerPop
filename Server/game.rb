@@ -47,7 +47,7 @@ class Game
       if need_to_start
         puts "New game is starting...#{ @player_manager.to_json.inspect }"
 
-        command_result = SessionStartCommandResult.new @session_id, @player_manager.to_json, 'fuck'
+        command_result = SessionStartCommandResult.new @session_id, @player_manager.to_json, 'hello'
       end
 
       puts 'done.'
