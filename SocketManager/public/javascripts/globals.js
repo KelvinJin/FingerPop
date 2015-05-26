@@ -13,7 +13,7 @@ var maxNameLength = 8;
 
 // Word to guess
 var word;
-var wordMap={};
+var wordMap = {};
 var wordInterval = 1500;
 var alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
 var letterWheel = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -34,7 +34,6 @@ var my_session_id = null;
 var my_player_id = null;
 var my_name = null;
 var player_score_list = {};
-var current_token = null;
 var request_list = new Queue();
 var signature = null;
 
@@ -48,62 +47,35 @@ function openSocket(playerName) {
 
   socket.on('connect', function () {
     socket.emit('playerName', playerName);
+
+    // Let's disable the current key press event.
+    $(document).keypress(function (event) {
+      // insertLetter(currentCharacter, event.charCode);
+      var keyPressed = String.fromCharCode(event.charCode).toLowerCase();
+
+      //sendKeyPress(keyPressed);
+      onKeyPress(keyPressed);
+    });
+
   });
 
   return socket
 }
 
-function keyPressToSocket(socket) {
-  // Let's disable the current key press event.
-  $(document).keypress(function (event) {
-    // insertLetter(currentCharacter, event.charCode);
-    var keyPressed = String.fromCharCode(event.charCode).toLowerCase();
-
-    //sendKeyPress(keyPressed);
-    onKeyPress(keyPressed);
-  });
-
-  currentSocket = socket;
-}
-
-var currentSocket = null;
-
-function requestToken(signature)
-{
-  if(currentSocket!=null){
-
-    var msg = "{\"Type\":99,\"Content\":{\"@session_id\":" + my_session_id +
-        ",\"@player_id\":\"" + my_player_id + "\",\"@signature\":\""+signature+"\"}}";
-    currentSocket.emit('requestToken',msg);
-  }
-}
-function onKeyPress(pressedKey){
-  if(!keyboard_enabled)
-  {
+function onKeyPress(pressedKey) {
+  if (! keyboard_enabled) {
     return;
   }
   var key = pressedKey.toUpperCase();
-  if(key>'Z' || key <'A')
-  {
+  if (key > 'Z' || key < 'A') {
     return;
   }
   var key_available = letterAvailable[key];
   signature = Date.now().toString();
-  var request = "{\"Key\":\""+key+"\",\"Status\":"+key_available+",\"Signature\":\""+signature+"\"}";
-  request_list.enqueue(request);
-  requestToken(signature);
-}
 
-//function sendKeyPress(key) {
-//
-//  if (currentSocket != null) {
-//    var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
-//      ",\"@player_id\":\"" + my_player_id + "\",\"@card_letter\":\"" + key +
-//      "\"}}";
-//
-//    currentSocket.emit('letterInserting', msg);
-//  }
-//}
+  var request = "{\"Key\":\"" + key + "\",\"Status\":" + key_available + ",\"Signature\":\"" + signature + "\"}";
+  request_list.enqueue(request);
+}
 
 function listenOnSocket(socket) {
   // Get the start session response from server.
@@ -112,191 +84,174 @@ function listenOnSocket(socket) {
 // keys: @session_id, @player_id, @player_name, @new_unsorted_word
   socket.on('startSession', function (msg) {
     // Get the json object from msg
-    jsonObj = JSON.parse(msg);
+    var jsonObj = JSON.parse(msg);
     printMessage("Game Start!!!" + msg);
-    var players = jsonObj['@player_list'];
 
-    if (my_player_id in players) {
+    var peerIds = jsonObj['@player_list'];
+
+    if (myPeerId in peerIds) {
       my_session_id = jsonObj['@session_id'];
     } else {
       return
     }
 
-    for (var player_id in players) {
-      if (player_id == my_player_id)
-        my_name = players[player_id];
-      addPlayer(player_id, players[player_id]);
+    // When I get the peer ids from server
+    var previousId = 0;
+    var nextId = 0;
+
+    for (var i = 0; i < peerIds.length; i++) {
+      addPlayer(peerIds[i], 'Player' + i);
+
+      if (peerIds[i] == myPeerId) {
+        previousId = i == 0 ? peerIds[peerIds.length - 1] : peerIds[i - 1];
+        nextId = i == peerIds.length - 1 ? peerIds[0] : peerIds[i + 1];
+      }
     }
+
     refreshPlayerScoreList();
 
     word = jsonObj['@new_unsorted_word'];
 
     if (word != null) {
       setWord(word);
-
     }
+
+    connectToPeers(peerIds, previousId, nextId, letterInsertedMessageProcessor, tokenReceivedMessageProcessor);
   });
+}
 
-  socket.on('getToken',function(msg){
-    msgObj = JSON.parse(msg);
-    if(msgObj['@player_id']!=my_player_id)
-    {
-      return;
-    }
-    current_token = msgObj['@token'];
-    var request = null;
+function tokenReceivedMessageProcessor(processCallback) {
 
-    while(!request_list.isEmpty()) {
-      request = request_list.dequeue();
-      requestObj = JSON.parse(request);
-      if (requestObj['Signature']==msgObj["@signature"])
-        break;
-    }
-    if(request != null && keyboard_enabled == true){
+  while (!request_list.isEmpty()) {
+
+    var request = request_list.dequeue();
+    var requestObj = JSON.parse(request);
+
+    if (keyboard_enabled == true) {
       requestObj = JSON.parse(request);
       var key = requestObj['Key'];
       var status = requestObj['Status'];
-      if(status == true)
-      {
+      if (status == true) {
         var slot_ids = [];
         var score_dif = 0;
         var complete = false;
         var new_unsorted_word = null;
-        if(wordMap[key]!=null){
+        if (wordMap[key] != null) {
           slot_ids = wordMap[key];
           score_dif = 15;
-          if(Object.keys(wordMap).length==1)
-          {
+          if (Object.keys(wordMap).length == 1) {
             complete = true;
             keyboard_enabled = false;
-            new_unsorted_word = wordList[wordListIndex++];
+            new_unsorted_word = wordList[wordListIndex ++];
           }
         }
-        if(slot_ids.length == 0)
-          score_dif = -5;
+        if (slot_ids.length == 0)
+          score_dif = - 5;
 
-        var letterInsertedMessage = {"@session_id":my_session_id,
-          "@player_id":my_player_id,
-          "@token":current_token,
-          "@slot_ids":slot_ids,
+        var letterInsertedMessage = {
+          "@session_id": my_session_id,
+          "@player_id": my_player_id,
+          "@slot_ids": slot_ids,
           "@score_dif": score_dif,
-          "@letter":key,
-          "@complete":complete,
-          "@new_unsorted_word":new_unsorted_word};
-
-
-
-        //var letterInsertedMessage = "{\"@session_id\":"+my_session_id+
-        //                            ",\"@player_id\":\""+my_player_id+
-        //                            "\",\"@token\":\""+current_token+
-        //                            "\",\"@score_dif\":"+score_dif+
-        //                            ",\"@slot_ids\":"+JSON.stringify(slot_ids)+
-        //                            ",\"@letter\":\""+key+
-        //                            "\",\"@complete\":"+complete+
-        //                            ",\"@new_unsorted_word\":"+new_unsorted_word+ "}";
-
-        var messageWithToken = "{\"Type\":3,\"Content\":{\"@token\":\""+current_token+
-            "\",\"@session_id\":"+my_session_id+
-            ",\"@player_id\":\""+my_player_id+
-            "\",\"@message\":"+JSON.stringify(letterInsertedMessage)+"}}";
-        currentSocket.emit('update',messageWithToken);
-      }
-    }
-
-    var tokenReleaseMessage ="{\"Type\":100,\"Content\":{\"@token\":\""+current_token+
-      "\",\"@session_id\":"+my_session_id+
-      ",\"@player_id\":\""+my_player_id+"\"}}";
-    currentSocket.emit('releaseToken',tokenReleaseMessage);
-
-  });
-
-  socket.on('setPlayerId', function (msg) {
-    printMessage("Set Player Id " + " " + msg + "\n");
-    my_player_id = msg;
-  });
-
-// Get the letter insert command result from server.
-// Message protocol:
-// keys: @session_id, @player_id, @score_dif, @slot_id, @letter, @complete, @new_unsorted_word
-  socket.on('letterInserted', function (msg) {
-    printMessage("Get new letter insertion" + "   " + msg);
-
-    jsonObj = (JSON.parse(msg)['@message']) ;
-
-    // First check the session id
-    session_id = jsonObj['@session_id'];
-    player_id = jsonObj['@player_id'];
-
-    if (session_id != my_session_id) return;
-
-    // Then check the score change
-    score_dif = jsonObj['@score_dif'];
-
-    if (score_dif != null) {
-      player_score_list[player_id][PLAYER_SCORE_KEY] += score_dif
-    }
-
-
-    // Second check if the the letter is null
-    slot_ids = jsonObj['@slot_ids'];
-
-    inserted_letter = jsonObj['@letter'];
-
-    if (slot_ids.length > 0) {
-      // Update the letter slot
-
-      insertLetter(slot_ids, inserted_letter);
-      delete wordMap[inserted_letter];
-
-      // Then check if this is the last move
-      is_complete = jsonObj['@complete'];
-
-      if (is_complete != null && is_complete) {
-
-        // Highlight the letters.
-        highlightSlots();
-        keyboard_enabled = false;
-
-        toastr.options = {
-          "closeButton": false,
-          "debug": false,
-          "newestOnTop": false,
-          "progressBar": false,
-          "positionClass": "toast-top-right",
-          "preventDuplicates": false,
-          "onclick": null,
-          "showDuration": "100",
-          "hideDuration": "100",
-          "timeOut": wordInterval,
-          "extendedTimeOut": "0",
-          "showEasing": "swing",
-          "hideEasing": "linear",
-          "showMethod": "fadeIn",
-          "hideMethod": "fadeOut"
+          "@letter": key,
+          "@complete": complete,
+          "@new_unsorted_word": new_unsorted_word
         };
 
-        toastr.success('Awesome! Be ready for the next!');
+        var letterInsertingMessageWrapper = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
+          ",\"@player_id\":\"" + my_player_id +
+          "\",\"@message\":" + JSON.stringify(letterInsertedMessage) + "}}";
 
-        // We freeze for a while to let people know the word.
-        setTimeout(function () {
-          // Then we check the new word
-          var new_word = jsonObj['@new_unsorted_word'];
 
-          printMessage(new_word);
-
-          if (new_word != null) {
-            printMessage("Get new word");
-            setWord(new_word);
-
-          }
-        }, wordInterval);
+        peerConnections.forEach(function(element, index) {
+          element.send(letterInsertingMessageWrapper);
+        });
       }
     }
-    else {
-      removeCard(inserted_letter);
+  }
+
+  processCallback();
+}
+
+
+function letterInsertedMessageProcessor(msg) {
+  printMessage("Get new letter insertion" + "   " + msg);
+
+  var jsonObj = (JSON.parse(msg)['@message']);
+
+  // First check the session id
+  var session_id = jsonObj['@session_id'];
+  var player_id = jsonObj['@player_id'];
+
+  if (session_id != my_session_id) return;
+
+  // Then check the score change
+  var score_dif = jsonObj['@score_dif'];
+
+  if (score_dif != null) {
+    player_score_list[player_id][PLAYER_SCORE_KEY] += score_dif
+  }
+
+
+  // Second check if the the letter is null
+  var slot_ids = jsonObj['@slot_ids'];
+
+  var inserted_letter = jsonObj['@letter'];
+
+  if (slot_ids.length > 0) {
+    // Update the letter slot
+
+    insertLetter(slot_ids, inserted_letter);
+    delete wordMap[inserted_letter];
+
+    // Then check if this is the last move
+    var is_complete = jsonObj['@complete'];
+
+    if (is_complete != null && is_complete) {
+
+      // Highlight the letters.
+      highlightSlots();
+      keyboard_enabled = false;
+
+      toastr.options = {
+        "closeButton": false,
+        "debug": false,
+        "newestOnTop": false,
+        "progressBar": false,
+        "positionClass": "toast-top-right",
+        "preventDuplicates": false,
+        "onclick": null,
+        "showDuration": "100",
+        "hideDuration": "100",
+        "timeOut": wordInterval,
+        "extendedTimeOut": "0",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      };
+
+      toastr.success('Awesome! Be ready for the next!');
+
+      // We freeze for a while to let people know the word.
+      setTimeout(function () {
+        // Then we check the new word
+        var new_word = jsonObj['@new_unsorted_word'];
+
+        printMessage(new_word);
+
+        if (new_word != null) {
+          printMessage("Get new word");
+          setWord(new_word);
+
+        }
+      }, wordInterval);
     }
-    refreshPlayerScoreList();
-  });
+  }
+  else {
+    removeCard(inserted_letter);
+  }
+  refreshPlayerScoreList();
 }
 
 function highlightSlots() {
@@ -341,7 +296,7 @@ function removeCard(letter) {
   var key = letter.toUpperCase();
   var cardId = letterMap[key][0];
   $(cardId).css("opacity", "0.3");
-  letterMap[key][0] = -1;
+  letterMap[key][0] = - 1;
   letterAvailable[key] = false;
 }
 
@@ -406,10 +361,9 @@ function setWord(rawWord) {
   word = rawWord.split("");
   letters = getLetters(word);
 
-  for(var i = 0;i<letters.length;i++)
-  {
-    if(wordMap[letters[i].toUpperCase()]==null){
-      wordMap[letters[i].toUpperCase()]=[];
+  for (var i = 0; i < letters.length; i ++) {
+    if (wordMap[letters[i].toUpperCase()] == null) {
+      wordMap[letters[i].toUpperCase()] = [];
     }
     wordMap[letters[i].toUpperCase()].push(i);
   }
