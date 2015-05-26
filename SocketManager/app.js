@@ -12,12 +12,11 @@ var bodyParser = require('body-parser');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 var app = express();
-var ExpressPeerServer = require('peer').ExpressPeerServer;
 var server = app.listen(3333);
-var options = {debug:true};
-app.use('/api',ExpressPeerServer(server,options));
 var net = require('net');
 var json_separator = '*';
+var PeerServer = require('peer').PeerServer;
+var pServer = PeerServer({port: 4444, path: '/api', allow_discovery:true});
 
 /***************************** General Setups ***************************/
 
@@ -41,93 +40,107 @@ app.use('/users', users);
 
 // The socket listener used to communicate with the Client.
 var listener = require('socket.io').listen(server);
+var player_list=[];
+var player_names=[];
+var players_per_session = 3;
+
+listener.on('connection', function (socket) {
+  console.log("connected");
+  if(player_list.length >= players_per_session){
+    var startSessionMessage = {"@player_list":player_list,
+      "@session_id":generateUUID(),
+      "@new_unsorted_word":"FUCK"};
+    listener.sockets.emit('startSession',JSON.stringify(startSessionMessage));
+    player_list=[];
+    player_names=[];
+  }
+});
+
+pServer.on('connection',function(id){
+  console.log(id);
+  player_list.push(id);
+});
+
+
 
 /***************************** Server Side Communicator ***************************/
 
-// The default unix socket used to communicate with the Server
- var unix_socket = net.connect('9999','10.9.170.116', function () {
-//var unix_socket = net.connect(SERVER_DEFAULT_ADDR, function () {
-  console.log('Connected to server!');
-});
-
-// We need to set the encoding since ruby and nodejs have different default encoding methods.
-unix_socket.setEncoding('utf8');
 
 /***************************** When we get a connection from Client ***************************/
 
 // Once we get a connection from Client.
-listener.on('connection', function (socket) {
-
-  // For individual Client, we listen on certain event.
-  socket.on('letterInserting', function (msg) {
-    unix_socket.write(msg + json_separator);
-  });
-  socket.on('update', function (msg) {
-    unix_socket.write(msg + json_separator);
-  });
-  socket.on('releaseToken', function (msg) {
-    unix_socket.write(msg + json_separator);
-  });
-  socket.on('requestToken', function (msg) {
-    unix_socket.write(msg + json_separator);
-  });
-
-  socket.on('playerName', function (msg) {
-    // Generate a new uuid for this player.
-    var new_player_id = generateUUID();
-
-    var sStartCommand = sessionStartCommand(new_player_id, msg);
-
-    socket.emit("setPlayerId", new_player_id);
-
-    // We must put this code here after we've listened on the socket.
-    unix_socket.write(sStartCommand + json_separator);
-  });
-
-  // Meanwhile, we'd like to subscribe this client to the message from Server.
-  // This is a broadcast way to return every message from server to client.
-  unix_socket.on('data', function (msgs) {
-
-    // Parse the message based on the json separator
-    var messages = msgs.split(json_separator);
-
-    // Get rid of empty message
-    messages = messages.filter(function (item) {
-      return item.length > 0;
-    });
-
-    // Now we can process the message array
-    for (var i = 0; i < messages.length; i++) {
-      var msg = messages[i];
-
-      try {
-        var message = JSON.parse(msg);
-      } catch (e) {
-        console.log(e.message);
-        continue
-      }
-
-      // However, we don't want one Client to get the start session message of other Clients.
-      // Because before the Client receives the start session message, it won't know whether a particular
-      // message should be processed or not. Only after start session message which contains the unique player id,
-      // can the individual Client know if a message is sent to itself.
-      if (message["@player_list"] != null) {
-        socket.emit('startSession', msg);
-      }
-      else if(message["@token"]!=null){
-        socket.emit('getToken',msg);
-      }
-      else {
-        socket.emit('letterInserted', msg);
-      }
-    }
-  });
-});
-
-function sessionStartCommand(new_player_id, new_player_name) {
-  return '{"Type":0,"Content":{"@player_id":"' + new_player_id + '","@player_name":"' + new_player_name + '"}}';
-}
-
+//listener.on('connection', function (socket) {
+//
+//  // For individual Client, we listen on certain event.
+//  socket.on('letterInserting', function (msg) {
+//    unix_socket.write(msg + json_separator);
+//  });
+//  socket.on('update', function (msg) {
+//    unix_socket.write(msg + json_separator);
+//  });
+//  socket.on('releaseToken', function (msg) {
+//    unix_socket.write(msg + json_separator);
+//  });
+//  socket.on('requestToken', function (msg) {
+//    unix_socket.write(msg + json_separator);
+//  });
+//
+//  socket.on('playerName', function (msg) {
+//    // Generate a new uuid for this player.
+//    var new_player_id = generateUUID();
+//
+//    var sStartCommand = sessionStartCommand(new_player_id, msg);
+//
+//    socket.emit("setPlayerId", new_player_id);
+//
+//    // We must put this code here after we've listened on the socket.
+//    unix_socket.write(sStartCommand + json_separator);
+//  });
+//
+//  // Meanwhile, we'd like to subscribe this client to the message from Server.
+//  // This is a broadcast way to return every message from server to client.
+//  unix_socket.on('data', function (msgs) {
+//
+//    // Parse the message based on the json separator
+//    var messages = msgs.split(json_separator);
+//
+//    // Get rid of empty message
+//    messages = messages.filter(function (item) {
+//      return item.length > 0;
+//    });
+//
+//    // Now we can process the message array
+//    for (var i = 0; i < messages.length; i++) {
+//      var msg = messages[i];
+//
+//      try {
+//        var message = JSON.parse(msg);
+//      } catch (e) {
+//        console.log(e.message);
+//        continue
+//      }
+//
+//      // However, we don't want one Client to get the start session message of other Clients.
+//      // Because before the Client receives the start session message, it won't know whether a particular
+//      // message should be processed or not. Only after start session message which contains the unique player id,
+//      // can the individual Client know if a message is sent to itself.
+//      if (message["@player_list"] != null) {
+//        socket.emit('startSession', msg);
+//      }
+//      else if(message["@token"]!=null){
+//        socket.emit('getToken',msg);
+//      }
+//      else {
+//        socket.emit('letterInserted', msg);
+//      }
+//    }
+//  });
+//});
+//
+//function sessionStartCommand(new_player_id, new_player_name) {
+//  return '{"Type":0,"Content":{"@player_id":"' + new_player_id + '","@player_name":"' + new_player_name + '"}}';
+//}
+//
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
