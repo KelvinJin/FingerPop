@@ -12,7 +12,10 @@ var bodyParser = require('body-parser');
 var routes = require('./routes/index');
 var users = require('./routes/users');
 var app = express();
+var ExpressPeerServer = require('peer').ExpressPeerServer;
 var server = app.listen(3333);
+var options = {debug:true};
+app.use('/api',ExpressPeerServer(server,options));
 var net = require('net');
 var json_separator = '*';
 
@@ -42,8 +45,8 @@ var listener = require('socket.io').listen(server);
 /***************************** Server Side Communicator ***************************/
 
 // The default unix socket used to communicate with the Server
-// var unix_socket = net.connect('9999','10.9.170.25', function () {
-var unix_socket = net.connect(SERVER_DEFAULT_ADDR, function () {
+ var unix_socket = net.connect('9999','10.9.170.116', function () {
+//var unix_socket = net.connect(SERVER_DEFAULT_ADDR, function () {
   console.log('Connected to server!');
 });
 
