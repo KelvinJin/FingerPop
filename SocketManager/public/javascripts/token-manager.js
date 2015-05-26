@@ -41,7 +41,7 @@ peer.on('connection', function(previousConnection) {
 });
 
 //
-var connectToNextPeer = function(nextPeerId) {
+var connectToNextPeer = function(nextPeerId, readyCallback) {
   // Connect to next remote peer.
   nextPeerConnection = peer.connect(nextPeerId);
 
@@ -56,11 +56,15 @@ var connectToNextPeer = function(nextPeerId) {
     }
 
   });
+
+  setTimeout(function () {
+    readyCallback();
+  }, 1000);
 };
 
 var sendTokenToNextPeer = function () {
-  var tokenReleaseMessage ="{\"Type\":100,\"Content\":{\"@session_id\":"+my_session_id+
-    ",\"@player_id\":\""+my_player_id+"\"}}";
+  var tokenReleaseMessage ="{\"Type\":100,\"Content\":{\"@session_id\":\""+my_session_id+
+    "\",\"@player_id\":\""+my_player_id+"\"}}";
 
   // For the next peer, we need to give it our token once we've done with it.
   nextPeerConnection.send(tokenReleaseMessage);

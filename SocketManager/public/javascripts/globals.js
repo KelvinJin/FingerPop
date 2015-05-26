@@ -117,12 +117,12 @@ function listenOnSocket(socket) {
     }
 
 
-    connectToNextPeer(nextId);
-
-    // If I'm the first one then I should start the token.
-    if (peerIds.indexOf(myPeerId) == 0) {
-      sendTokenToNextPeer();
-    }
+    connectToNextPeer(nextId, function () {
+      // If I'm the first one then I should start the token.
+      if (peerIds.indexOf(myPeerId) == 0) {
+        sendTokenToNextPeer();
+      }
+    });
   });
 }
 
@@ -156,7 +156,7 @@ function tokenReceivedMessageProcessor(processCallback) {
 
         var letterInsertedMessage = {
           "@session_id": my_session_id,
-          "@player_id": my_player_id,
+          "@player_id": myPeerId,
           "@slot_ids": slot_ids,
           "@score_dif": score_dif,
           "@letter": key,
@@ -164,13 +164,14 @@ function tokenReceivedMessageProcessor(processCallback) {
           "@new_unsorted_word": new_unsorted_word
         };
 
-        var letterInsertingMessageWrapper = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
-          ",\"@player_id\":\"" + my_player_id +
+        var letterInsertingMessageWrapper = "{\"Type\":3,\"Content\":{\"@session_id\":\"" + my_session_id +
+          "\",\"@player_id\":\"" + myPeerId +
           "\",\"@message\":" + JSON.stringify(letterInsertedMessage) + "}}";
 
 
         previousPeerConnection.send(letterInsertingMessageWrapper);
         nextPeerConnection.send(letterInsertingMessageWrapper);
+        letterInsertedMessageProcessor(letterInsertingMessageWrapper);
       }
     }
   }
@@ -182,7 +183,7 @@ function tokenReceivedMessageProcessor(processCallback) {
 function letterInsertedMessageProcessor(msg) {
   printMessage("Get new letter insertion" + "   " + msg);
 
-  var jsonObj = (JSON.parse(msg)['@message']);
+  var jsonObj = (JSON.parse(msg)['Content']['@message']);
 
   // First check the session id
   var session_id = jsonObj['@session_id'];
@@ -282,7 +283,7 @@ function refreshPlayerScoreList() {
       player_name = player_score_list[player_id][PLAYER_NAME_KEY];
       player_score = player_score_list[player_id][PLAYER_SCORE_KEY];
 
-      var styledList = my_player_id == player_id ? '<td class=\"leftAlignedTable\" style="color: deepskyblue;">' : '<td class=\"leftAlignedTable\">'
+      var styledList = myPeerId == player_id ? '<td class=\"leftAlignedTable\" style="color: deepskyblue;">' : '<td class=\"leftAlignedTable\">'
 
       teamScoreList.append("<tr>" + styledList + player_name +
         "</td><td class=\"rightAlignedTable\">" + player_score + "</td></tr>");
