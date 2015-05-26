@@ -116,12 +116,12 @@ function listenOnSocket(socket) {
       setWord(word);
     }
 
-    connectToPeers(peerIds, previousId, nextId, letterInsertedMessageProcessor, tokenReceivedMessageProcessor);
 
+    connectToNextPeer(nextId);
 
     // If I'm the first one then I should start the token.
-    if (nextId == 1) {
-      sendTokenToPeer(nextId);
+    if (peerIds.indexOf(myPeerId) == 0) {
+      sendTokenToNextPeer();
     }
   });
 }
@@ -169,9 +169,8 @@ function tokenReceivedMessageProcessor(processCallback) {
           "\",\"@message\":" + JSON.stringify(letterInsertedMessage) + "}}";
 
 
-        peerConnections.forEach(function(element, index) {
-          element.send(letterInsertingMessageWrapper);
-        });
+        previousPeerConnection.send(letterInsertingMessageWrapper);
+        nextPeerConnection.send(letterInsertingMessageWrapper);
       }
     }
   }

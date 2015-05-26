@@ -19,48 +19,46 @@ peer.on('open', function (id) {
 });
 
 
-var peerConnections = {};
+var previousPeerConnection = null;
+var nextPeerConnection = null;
 
-// Connect to other peers in the same game
-var connectToPeers = function(peerIds, previousPeerId, nextPeerId, letterInsertedCallback, tokenReceivedCallback) {
-  for (var i = 0; i < peerIds.length; i++) {
-
-    // Connect to a remote peer.
-    var newConnection = peer.connect(peerIds[i]);
-
-    // If we receive a token from the peer.
-    // The format should be {Type: 99, Content: {@session_id: 111, @player_id: '1111', @signature: '2222', @timestamp: 21324}}
-    newConnection.on('data', function (msg) {
-
-      var message = JSON.parse(msg);
-
-      if (message['Type'] == LETTER_INSERT_MESSAGE) {
-        letterInsertedCallback(message);
-      }
-
-    });
-
-    peerConnections[peerIds[i]] = newConnection;
-  }
+peer.on('connection', function(previousConnection) {
+  previousPeerConnection = previousConnection;
 
   // For previous peer, we need to listen on the token release message.
   // Let's assume we'll process all the letters in the queue.
-  var previousPeerConnection = peerConnections[previousPeerId];
-
-  previousPeerConnection.on('data', function () {
+  previousPeerConnection.on('data', function (msg) {
     var message = JSON.parse(msg);
 
     if (message['Type'] == TOKEN_RELEASE_MESSAGE) {
-      tokenReceivedCallback(function () {
-        sendTokenToPeer(nextPeerId);
+      tokenReceivedMessageProcessor(function () {
+        sendTokenToNextPeer();
       });
+    } else if (message['Type'] == LETTER_INSERT_MESSAGE) {
+      letterInsertedMessageProcessor(msg);
     }
+  });
+});
+
+//
+var connectToNextPeer = function(nextPeerId) {
+  // Connect to next remote peer.
+  nextPeerConnection = peer.connect(nextPeerId);
+
+  // If we receive a token from the peer.
+  // The format should be {Type: 99, Content: {@session_id: 111, @player_id: '1111', @signature: '2222', @timestamp: 21324}}
+  nextPeerConnection.on('data', function (msg) {
+
+    var message = JSON.parse(msg);
+
+    if (message['Type'] == LETTER_INSERT_MESSAGE) {
+      letterInsertedMessageProcessor(msg);
+    }
+
   });
 };
 
-var sendTokenToPeer = function (peerId) {
-  var nextPeerConnection = peerConnections[peerId];
-
+var sendTokenToNextPeer = function () {
   var tokenReleaseMessage ="{\"Type\":100,\"Content\":{\"@session_id\":"+my_session_id+
     ",\"@player_id\":\""+my_player_id+"\"}}";
 
