@@ -15,7 +15,6 @@ var maxNameLength = 8;
 var word;
 var wordMap={};
 var wordInterval = 1500;
-var alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
 var letterWheel = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 var maxLetters = 30;
 
@@ -26,10 +25,9 @@ var colorWheel = ["red", "green", "brown", "yellow", "orange", "cyan",
 
 var letterMap = {};
 var letterAvailable = {};
+var keyboard_enabled = false;     //the keyboard message will be sent only when this is enabled.
 
-//socket.listener------------
-
-var keyboard_enabled = false;
+// game information
 var my_session_id = null;
 var my_player_id = null;
 var my_name = null;
@@ -40,6 +38,8 @@ var signature = null;
 
 var PLAYER_NAME_KEY = 'name';
 var PLAYER_SCORE_KEY = 'score';
+
+//socket.listener------------
 
 function openSocket(playerName) {
 
@@ -56,10 +56,7 @@ function openSocket(playerName) {
 function keyPressToSocket(socket) {
   // Let's disable the current key press event.
   $(document).keypress(function (event) {
-    // insertLetter(currentCharacter, event.charCode);
     var keyPressed = String.fromCharCode(event.charCode).toLowerCase();
-
-    //sendKeyPress(keyPressed);
     onKeyPress(keyPressed);
   });
 
@@ -78,35 +75,27 @@ function requestToken(signature)
   }
 }
 function onKeyPress(pressedKey){
+  //the message will be sent only when keyboard is enabled
   if(!keyboard_enabled)
   {
     return;
   }
+  //function returns if the key is not a letter
   var key = pressedKey.toUpperCase();
   if(key>'Z' || key <'A')
   {
     return;
   }
   var key_available = letterAvailable[key];
+  //signature is generated based on the current time.
   signature = Date.now().toString();
   var request = "{\"Key\":\""+key+"\",\"Status\":"+key_available+",\"Signature\":\""+signature+"\"}";
   request_list.enqueue(request);
   requestToken(signature);
 }
 
-//function sendKeyPress(key) {
-//
-//  if (currentSocket != null) {
-//    var msg = "{\"Type\":3,\"Content\":{\"@session_id\":" + my_session_id +
-//      ",\"@player_id\":\"" + my_player_id + "\",\"@card_letter\":\"" + key +
-//      "\"}}";
-//
-//    currentSocket.emit('letterInserting', msg);
-//  }
-//}
-
 function listenOnSocket(socket) {
-  // Get the start session response from server.
+// Get the start session response from server.
 // This message should be received first before anything else.
 // Message protocol:
 // keys: @session_id, @player_id, @player_name, @new_unsorted_word
@@ -183,17 +172,6 @@ function listenOnSocket(socket) {
           "@letter":key,
           "@complete":complete,
           "@new_unsorted_word":new_unsorted_word};
-
-
-
-        //var letterInsertedMessage = "{\"@session_id\":"+my_session_id+
-        //                            ",\"@player_id\":\""+my_player_id+
-        //                            "\",\"@token\":\""+current_token+
-        //                            "\",\"@score_dif\":"+score_dif+
-        //                            ",\"@slot_ids\":"+JSON.stringify(slot_ids)+
-        //                            ",\"@letter\":\""+key+
-        //                            "\",\"@complete\":"+complete+
-        //                            ",\"@new_unsorted_word\":"+new_unsorted_word+ "}";
 
         var messageWithToken = "{\"Type\":3,\"Content\":{\"@token\":\""+current_token+
             "\",\"@session_id\":"+my_session_id+
@@ -299,12 +277,14 @@ function listenOnSocket(socket) {
   });
 }
 
+//when the word is completed, this function will be called to highlight slots
 function highlightSlots() {
   $('.slotElement').each(function (index, element) {
     element.style.backgroundColor = "#2ecc71";
   })
 }
 
+//add a player to the player list
 function addPlayer(player_id, player_name) {
   player_score_list[player_id] = {};
   player_score_list[player_id][PLAYER_NAME_KEY] = player_name;
@@ -352,16 +332,7 @@ function insertLetter(slot_ids, letter) {
 
   for (var i = 0; i < slot_ids.length; i ++) {
     var cardId = letterMap[key][0];
-
-    // var positionSlot = $("#slot" + slot_ids[i]).offset();
-    // var positionCard = $(cardId).offset();
-
     $(cardId).position({of: $("#slot" + slot_ids[i]), my: 'center', at: 'center'}).addClass('slotElement');
-
-    //dx = positionSlot.left - positionCard.left;
-    //dy = positionSlot.top - positionCard.top;
-
-    //$(cardId).simulate("drag-n-drop", {dx: dx, dy: dy});
 
     if (cardId == '-1') {
       var newId = initialId + "_" + i;
@@ -379,7 +350,7 @@ function insertLetter(slot_ids, letter) {
   }
 
 }
-//------------socket.listener
+
 
 
 function getLetters(word) {
@@ -402,6 +373,7 @@ function placeChoices(letters) {
   }
 }
 
+//set the word to guess. Break down the letters in the word and put them to the wordMap.
 function setWord(rawWord) {
   word = rawWord.split("");
   letters = getLetters(word);
@@ -454,6 +426,7 @@ function init() {
   };
 }
 
+//debug functions-----------------------------
 function placeWordHint(word) {
   for (var i = 0; i < Math.min(word.length, maxWordLength); i ++) {
     var letter = word[i].toUpperCase();
@@ -472,7 +445,7 @@ function printMessage(message) {
   var txt = $("textarea#console");
   txt.val(message + txt.val());
 }
-
+//---------------------------debug functions
 
 window.onload = function () {
   init();
