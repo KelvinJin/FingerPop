@@ -42,8 +42,8 @@ var listener = require('socket.io').listen(server);
 /***************************** Server Side Communicator ***************************/
 
 // The default unix socket used to communicate with the Server
- var unix_socket = net.connect('9999','10.9.169.164', function () {
-//var unix_socket = net.connect(SERVER_DEFAULT_ADDR, function () {
+// var unix_socket = net.connect('9999','10.9.169.164', function () {
+var unix_socket = net.connect(SERVER_DEFAULT_ADDR, function () {
   console.log('Connected to server!');
 });
 
